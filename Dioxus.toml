@@ -1,0 +1,14 @@
+[application]
+
+[web.app]
+title = "messenger"
+
+[web.watcher]
+index_on_404 = true
+
+[web.resource]
+style = []
+script = []
+
+[web.resource.dev]
+script = []

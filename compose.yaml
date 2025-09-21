@@ -1,0 +1,21 @@
+services:
+  hydra:
+    image: oryd/hydra:v2.2
+    command: serve all --dev
+    ports:
+      - "4444:4444"
+      - "4445:4445"
+    environment:
+      - DSN=memory
+
+  kratos:
+    image: oryd/kratos:v1.1.0
+    command: serve --dev --config /etc/config/kratos/kratos.yml
+    volumes:
+      - ./kratos/kratos.yml:/etc/config/kratos/kratos.yml
+      - ./kratos/identity.schema.json:/etc/config/kratos/identity.schema.json
+    ports:
+      - "4433:4433"
+      - "4434:4434"
+    # depends_on:
+    #   - postgres

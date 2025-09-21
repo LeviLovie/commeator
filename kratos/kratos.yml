@@ -1,0 +1,60 @@
+dsn: memory
+
+serve:
+  public:
+    base_url: http://localhost:4433/
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://localhost:3000
+      allowed_methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      allowed_headers:
+        - Authorization
+        - Content-Type
+        - Cookie
+      exposed_headers:
+        - Content-Type
+      allow_credentials: true
+  admin:
+    base_url: http://localhost:4434/
+
+selfservice:
+  default_browser_return_url: http://localhost:3000/home
+  flows:
+    login:
+      ui_url: http://localhost:3000/login
+      lifespan: 1h
+    registration:
+      ui_url: http://localhost:3000/registration
+      enabled: true
+      lifespan: 1h
+      login_hints: false
+    settings:
+      ui_url: http://localhost:3000/settings
+      lifespan: 1h
+      required_aal: highest_available
+      privileged_session_max_age: 1h
+    recovery:
+      ui_url: http://localhost:3000/recovery
+      lifespan: 1h
+    verification:
+      ui_url: http://localhost:3000/verification
+      lifespan: 1h
+    error:
+      ui_url: http://localhost:3000/error
+
+identity:
+  default_schema_id: default
+  schemas:
+    - id: default
+      url: file:///etc/config/kratos/identity.schema.json
+
+courier:
+  smtp:
+    connection_uri: smtp://noop
