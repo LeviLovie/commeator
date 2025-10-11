@@ -9,7 +9,7 @@ services:
       - DSN=memory
 
   kratos:
-    image: oryd/kratos:v1.1.0
+    image: oryd/kratos:v1.3.1
     command: serve --dev --config /etc/config/kratos/kratos.yml
     volumes:
       - ./kratos/kratos.yml:/etc/config/kratos/kratos.yml
@@ -17,5 +17,3 @@ services:
     ports:
       - "4433:4433"
       - "4434:4434"
-    # depends_on:
-    #   - postgres

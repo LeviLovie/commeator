@@ -1,18 +1,17 @@
+mod auth;
 mod components;
 mod pages;
 
 use dioxus::{logger::tracing::Level, prelude::*};
 
-use pages::{ErrorHandler, Home, Landing, Registration};
+use pages::{ErrorHandler, Home, LogIn};
 
 #[derive(Clone, Routable, PartialEq)]
 enum Route {
     #[route("/")]
-    Landing,
-    #[route("/home")]
     Home,
-    #[route("/registration?:flow")]
-    Registration { flow: String },
+    #[route("/login?:flow")]
+    LogIn { flow: String },
     #[route("/error?:id")]
     ErrorHandler { id: String },
 }
@@ -31,9 +30,10 @@ fn main() {
 #[component]
 fn App() -> Element {
     rsx! {
-        document::Stylesheet {
-            href: asset!("/assets/tailwind.css")
+        document::Script {
+            src: "https://cdn.tailwindcss.com",
         }
+
         Router::<Route> {}
     }
 }

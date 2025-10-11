@@ -1,11 +1,23 @@
 use dioxus::prelude::*;
 
+use crate::{auth::get_user, components::{LogOut, CenteredForm}};
+
 #[component]
 pub fn Home() -> Element {
+    let user = use_resource(|| async { get_user().await });
+    if user().is_none() || user().as_ref().unwrap().is_none() {
+        return rsx! { div { "Redirecting..." } };
+    }
+    let user = user().unwrap().unwrap();
+
     rsx! {
-        div {
-            h1 { "You are logged in!" }
-            p { "Welcome to your messenger home." }
+        CenteredForm {
+            p {
+                class: "text-4xl font-bold text-gray-800 mb-4",
+                "Welcome, {user.identity.traits.email}!"
+            }
+
+            LogOut {}
         }
     }
 }

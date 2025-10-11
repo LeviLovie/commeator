@@ -1,20 +1,36 @@
 {
   "$id": "https://example.com/identity.schema.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Default Identity Schema",
+  "title": "Person",
   "type": "object",
   "properties": {
     "traits": {
       "type": "object",
       "properties": {
+        "name": {
+          "type": "object",
+          "properties": {
+            "first": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": []
+        },
         "email": {
           "type": "string",
           "format": "email"
+        },
+        "hd": {
+          "type": "string"
         }
       },
       "required": [
         "email"
-      ]
+      ],
+      "additionalProperties": false
     }
   }
 }

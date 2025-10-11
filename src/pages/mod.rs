@@ -1,9 +1,7 @@
 mod error;
 mod home;
-mod landing;
-mod registration;
+mod login;
 
 pub use error::ErrorHandler;
 pub use home::Home;
-pub use landing::Landing;
-pub use registration::Registration;
+pub use login::LogIn;

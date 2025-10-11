@@ -5,9 +5,11 @@ authors = ["Levi Lovie <leviiloviee@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-dioxus = { version = "0.7.0-alpha.3", features = ["router", "fullstack"] }
+anyhow = "1.0.100"
+dioxus = { version = "0.7.0-rc.1", features = ["router", "fullstack"] }
 gloo-net = "0.6.0"
 serde = { version = "1.0.225", features = ["derive"] }
+serde_json = "1.0.145"
 wasm-bindgen-futures = "0.4.53"
 web-sys = "0.3.80"
 
@@ -16,3 +18,15 @@ default = ["web"]
 web = ["dioxus/web"]
 desktop = ["dioxus/desktop"]
 mobile = ["dioxus/mobile"]
+
+[profile]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"
