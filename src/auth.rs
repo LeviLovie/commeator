@@ -3,8 +3,7 @@ use dioxus::prelude::*;
 use serde::Deserialize;
 use anyhow::{Context, Result};
 
-const URL_WHOAMI: &str = "http://localhost:4433/sessions/whoami";
-const URL_LOGIN: &str = "http://localhost:4433/self-service/login/browser";
+use crate::config::{URL_WHOAMI, URL_LOGIN};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct UserInfo {

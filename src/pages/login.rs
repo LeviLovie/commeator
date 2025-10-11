@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use serde::Deserialize;
 use gloo_net::http::Request;
 
-use crate::{components::CenteredForm};
+use crate::{components::{CenteredForm, Spinner}, config::url_login_flow};
 
 #[derive(Deserialize, Debug, Clone)]
 struct RegistrationFlow {
@@ -37,10 +37,7 @@ pub fn LogIn(flow: String) -> Element {
     let flow = use_resource(move || {
         let flow_id = flow_id.clone();
         async move {
-            let res = Request::get(&format!(
-                "http://localhost:4433/self-service/login/flows?id={}",
-                flow_id
-            ))
+            let res = Request::get(&url_login_flow(&flow_id))
                 .credentials(web_sys::RequestCredentials::Include)
                 .send()
                 .await?;
@@ -53,8 +50,8 @@ pub fn LogIn(flow: String) -> Element {
     rsx! {
         CenteredForm {
             match *flow.value().read() {
-                None => rsx! { p { "Loading registration flow..." } },
-                Some(Err(ref e)) => rsx! { p { "Error loading registration flow: {e}" } },
+                None => rsx! { Spinner {} },
+                Some(Err(_)) => rsx! { Spinner {} },
                 Some(Ok(ref flow)) => render_flow(flow),
             }
         }

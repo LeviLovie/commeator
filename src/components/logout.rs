@@ -2,6 +2,8 @@ use dioxus::prelude::*;
 use gloo_net::http::Request;
 use serde::Deserialize;
 
+use crate::config::URL_LOGOUT;
+
 #[derive(Deserialize, Debug, Clone)]
 struct LogOutResponse {
     logout_url: String,
@@ -13,7 +15,7 @@ pub fn LogOut() -> Element {
         button {
             class: "px-4 py-2 bg-red-500 rounded mb-6",
             onclick: |_| async {
-                match Request::get("http://localhost:4433/self-service/logout/browser")
+                match Request::get(URL_LOGOUT)
                     .credentials(web_sys::RequestCredentials::Include)
                     .send()
                     .await {

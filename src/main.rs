@@ -1,5 +1,6 @@
 mod auth;
 mod components;
+mod config;
 mod pages;
 
 use dioxus::{logger::tracing::Level, prelude::*};

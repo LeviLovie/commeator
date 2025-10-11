@@ -1,12 +1,15 @@
 use dioxus::prelude::*;
 
-use crate::{auth::get_user, components::{LogOut, CenteredForm}};
+use crate::{
+    auth::get_user,
+    components::{CenteredForm, LogOut, Spinner},
+};
 
 #[component]
 pub fn Home() -> Element {
     let user = use_resource(|| async { get_user().await });
     if user().is_none() || user().as_ref().unwrap().is_none() {
-        return rsx! { div { "Redirecting..." } };
+        return rsx! { Spinner {} };
     }
     let user = user().unwrap().unwrap();
 
