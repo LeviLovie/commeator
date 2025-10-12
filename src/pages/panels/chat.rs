@@ -1,8 +1,10 @@
 use dioxus::prelude::*;
 
+use crate::backend::chats::ChatInfo;
+
 #[component]
-pub fn Chat() -> Element {
+pub fn Chat(chat_info: ChatInfo) -> Element {
     rsx! {
-        p { "Chats" }
+        p { "Chat {chat_info:?}" }
     }
 }

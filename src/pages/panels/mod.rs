@@ -18,6 +18,8 @@ pub use users::Users;
 
 use dioxus::prelude::*;
 
+use crate::backend::chats::ChatInfo;
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum LeftPanel {
     Chats,
@@ -28,7 +30,7 @@ pub enum LeftPanel {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum RightPanel {
     Empty,
-    Chat(i32),
+    Chat(ChatInfo),
     SettingsTab,
     UserProfile(i32),
 }
@@ -41,22 +43,33 @@ pub enum PanelLayout {
 
 impl LeftPanel {
     pub fn component(&self) -> Element {
-        println!("Rendering left panel: {:?}", self);
-        match self {
-            LeftPanel::Chats => rsx! { Chats {} },
-            LeftPanel::Users => rsx! { Users {} },
-            LeftPanel::Settings => rsx! { Settings {} },
+        rsx! {
+            div {
+                class: "p-1",
+
+                match self {
+                    LeftPanel::Chats => rsx! { Chats {} },
+                    LeftPanel::Users => rsx! { Users {} },
+                    LeftPanel::Settings => rsx! { Settings {} },
+                }
+            }
         }
     }
 }
 
 impl RightPanel {
     pub fn component(&self) -> Element {
-        match self {
-            RightPanel::Empty => rsx! { Empty {} },
-            RightPanel::Chat(_chat_id) => rsx! { Chat {} },
-            RightPanel::SettingsTab => rsx! { SettingsTab {} },
-            RightPanel::UserProfile(_user_id) => rsx! { Profile {} },
+        rsx! {
+            div {
+                class: "p-1",
+
+                match self {
+                    RightPanel::Empty => rsx! { Empty {} },
+                    RightPanel::Chat(chat_info) => rsx! { Chat { chat_info: chat_info.clone() } },
+                    RightPanel::SettingsTab => rsx! { SettingsTab {} },
+                    RightPanel::UserProfile(_user_id) => rsx! { Profile {} },
+                }
+            }
         }
     }
 }
@@ -66,6 +79,7 @@ pub struct PanelContext {
     pub left: Signal<LeftPanel>,
     pub right: Signal<RightPanel>,
     pub layout: Signal<PanelLayout>,
+    pub chats: Signal<Option<Vec<ChatInfo>>>,
 }
 
 impl Default for PanelContext {
@@ -74,6 +88,7 @@ impl Default for PanelContext {
             left: use_signal(|| LeftPanel::Chats),
             right: use_signal(|| RightPanel::Empty),
             layout: use_signal(|| PanelLayout::Desktop),
+            chats: use_signal(|| None),
         }
     }
 }
@@ -82,23 +97,23 @@ impl Default for PanelContext {
 pub fn Panels() -> Element {
     let panel_context = use_context::<PanelContext>();
 
-    // #[cfg(target_arch = "wasm32")]
-    // {
-    //     let mut context = use_context::<PanelContext>();
-    //     use_effect(move || {
-    //         let width = web_sys::window()
-    //             .unwrap()
-    //             .inner_width()
-    //             .unwrap()
-    //             .as_f64()
-    //             .unwrap();
-    //         context.layout.set(if width >= 768.0 {
-    //             PanelLayout::Desktop
-    //         } else {
-    //             PanelLayout::Mobile
-    //         });
-    //     });
-    // }
+    #[cfg(target_arch = "wasm32")]
+    {
+        let mut context = use_context::<PanelContext>();
+        use_effect(move || {
+            let width = web_sys::window()
+                .unwrap()
+                .inner_width()
+                .unwrap()
+                .as_f64()
+                .unwrap();
+            context.layout.set(if width >= 768.0 {
+                PanelLayout::Desktop
+            } else {
+                PanelLayout::Mobile
+            });
+        });
+    }
 
     let layout = panel_context.layout.read().clone();
     match layout {

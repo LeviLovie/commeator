@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::pages::{LeftPanel, PanelContext};
+use crate::pages::{LeftPanel, PanelContext, RightPanel};
 
 #[component]
 pub fn NavBar() -> Element {
@@ -29,7 +29,11 @@ pub fn NavBar() -> Element {
                     button {
                         key: "{id}",
                         class: "flex flex-col items-center transition transform duration-300 hover:scale-110 hover:bg-gray-200 p-2 rounded",
-                        onclick: move |_| { panel_context.left.set(panel_clone.clone()) },
+                        onclick: move |_| {
+                            panel_context.left.set(panel_clone.clone());
+                            panel_context.right.set(RightPanel::Empty);
+                        },
+
                         img {
                             class: "h-5 w-5 mb-1",
                             src: "{icon}",

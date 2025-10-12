@@ -1,5 +1,5 @@
 pub mod users;
-// pub mod chats;
+pub mod chats;
 pub mod jwt;
 
 #[cfg(feature = "server")]
