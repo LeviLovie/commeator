@@ -63,3 +63,65 @@ pub async fn get_user() -> Option<UserInfo> {
         }
     }
 }
+
+#[macro_export]
+macro_rules! user {
+    () => {
+        {
+            let user = use_resource(|| async { $crate::auth::get_user().await });
+            if user().is_none() || user().as_ref().unwrap().is_none() {
+                return rsx! { $crate::components::Spinner {} };
+            }
+            user().as_ref().unwrap().as_ref().unwrap().clone();
+        };
+    };
+}
+
+#[macro_export]
+macro_rules! verify_user_jwt {
+    () => {
+        {
+            let user = use_resource(|| async { $crate::auth::get_user().await });
+            if user().is_none() || user().as_ref().unwrap().is_none() {
+                return rsx! { $crate::components::Spinner {} };
+            }
+            let user = user().as_ref().unwrap().as_ref().unwrap().clone();
+
+            let jwt = use_resource(|| async { $crate::pages::state::jwt().await });
+            if jwt().is_none() {
+                return rsx! { $crate::components::Spinner {} };
+            }
+            let jwt = jwt();
+            let jwt_clone = jwt.clone();
+            let is_valid = use_resource(move || {
+                let jwt_clone = jwt_clone.clone();
+                async move  {
+                    if let Some(token) = jwt_clone {
+                        if token == "NO_JWT" {
+                            false
+                        } else {
+                            $crate::backend::jwt::verify_jwt_endpoint(token).await.unwrap_or(false)
+                        }
+                    } else {
+                        false
+                    }
+                }
+            });
+            if is_valid().is_none() {
+                return rsx! { $crate::components::Spinner {} };
+            }
+            let is_valid = is_valid();
+            if !is_valid.unwrap() {
+                warn!("Invalid JWT for user {}", user.identity.traits.email);
+                spawn(async {
+                    if let Err(e) = $crate::pages::state::request_jwt().await {
+                        error!("Failed to request new JWT: {}", e);
+                        navigator().replace($crate::Route::Home);
+                    }
+                });
+            }
+
+            (user, jwt.clone().unwrap())
+        }
+    };
+}

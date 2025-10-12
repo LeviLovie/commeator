@@ -13,3 +13,13 @@ pub fn url_login_flow(flow_id: &str) -> String {
 pub mod server_utils {
     pub const DATABASE_URL: &str = "postgresql://messenger@localhost/messenger";
 }
+
+#[cfg(feature = "server")]
+pub fn jwt_secret() -> Vec<u8> {
+    dotenv::dotenv().ok();
+
+    match std::env::var("JWT_SECRET") {
+        Ok(secret) => secret.into_bytes(),
+        Err(_) => panic!("JWT_SECRET not present"),
+    }
+}

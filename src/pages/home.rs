@@ -1,17 +1,13 @@
 use dioxus::prelude::*;
 
 use crate::{
-    auth::get_user,
-    components::{CenteredForm, LogOut, Spinner},
+    components::{CenteredForm, LogOut},
+    verify_user_jwt,
 };
 
 #[component]
 pub fn Home() -> Element {
-    let user = use_resource(|| async { get_user().await });
-    if user().is_none() || user().as_ref().unwrap().is_none() {
-        return rsx! { Spinner {} };
-    }
-    let user = user().as_ref().unwrap().as_ref().unwrap().clone();
+    let (user, _jwt) = verify_user_jwt!();
 
     rsx! {
         CenteredForm {

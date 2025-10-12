@@ -1,4 +1,5 @@
 pub mod users;
+pub mod jwt;
 
 #[cfg(feature = "server")]
 mod verify_kratos;
