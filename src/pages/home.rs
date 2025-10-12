@@ -1,22 +1,22 @@
 use dioxus::prelude::*;
 
 use crate::{
-    components::{CenteredForm, LogOut},
+    pages::{PanelContext, Panels},
     verify_user_jwt,
 };
 
 #[component]
 pub fn Home() -> Element {
-    let (user, _jwt) = verify_user_jwt!();
+    let (_user, _jwt) = verify_user_jwt!();
+
+    let panel_context = PanelContext::default();
+    use_context_provider(|| panel_context.clone());
 
     rsx! {
-        CenteredForm {
-            p {
-                class: "text-4xl font-bold text-gray-800 mb-4",
-                "Welcome, {user.identity.traits.email}!"
-            }
+        div {
+            class: "flex h-screen w-screen",
 
-            LogOut {}
+            Panels {}
         }
     }
 }

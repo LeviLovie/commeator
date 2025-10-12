@@ -1,4 +1,5 @@
 pub mod users;
+// pub mod chats;
 pub mod jwt;
 
 #[cfg(feature = "server")]
@@ -13,6 +14,7 @@ mod server_utils {
     pub use super::entities::prelude::*;
     pub use super::entities::*;
     pub use super::verify_kratos::verify_kratos_cookie;
+    pub use super::jwt::verify_jwt;
 
     pub use sea_orm::{ActiveModelTrait, ActiveValue::*, ColumnTrait, EntityTrait, QueryFilter};
 

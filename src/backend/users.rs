@@ -1,10 +1,14 @@
 use dioxus::prelude::*;
 
 #[cfg(feature = "server")]
-use dioxus_fullstack::HeaderMap;
+mod server_utils {
+    pub use dioxus::prelude::dioxus_fullstack::HeaderMap;
+    pub use sea_orm::DatabaseConnection;
 
+    pub use crate::backend::server_utils::*;
+}
 #[cfg(feature = "server")]
-use super::server_utils::*;
+use server_utils::*;
 
 #[post("/api/user/check", headers: HeaderMap)]
 pub async fn check_user() -> Result<bool, ServerFnError> {
@@ -30,7 +34,6 @@ pub async fn setup_user(username: String, nickname: String) -> Result<(), Server
         .await
         .context("Failed to verify Kratos cookie")?;
     let email = user.identity.traits.email.clone();
-
     let db = db().await;
 
     let user: Option<users::Model> = Users::find()
@@ -40,6 +43,29 @@ pub async fn setup_user(username: String, nickname: String) -> Result<(), Server
         .map_err(|e| ServerFnError::new(e.to_string()))?;
     if user.is_some() {
         return Err(ServerFnError::new("User already exists".to_string()));
+    }
+
+    if username.len() < 3 || username.len() > 20 {
+        return Err(ServerFnError::new(
+            "Username must be between 3 and 20 characters".to_string(),
+        ));
+    }
+    if nickname.len() < 3 || nickname.len() > 30 {
+        return Err(ServerFnError::new(
+            "Nickname must be between 3 and 30 characters".to_string(),
+        ));
+    }
+    if !username
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    {
+        return Err(ServerFnError::new(
+            "Username can only contain alphanumeric characters, underscores, and hyphens"
+                .to_string(),
+        ));
+    }
+    if username_taken(&username, db).await? {
+        return Err(ServerFnError::new("Username is already taken".to_string()));
     }
 
     let new_user = users::ActiveModel {
@@ -54,4 +80,31 @@ pub async fn setup_user(username: String, nickname: String) -> Result<(), Server
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     Ok(())
+}
+
+#[get("/api/user/by_username")]
+pub async fn user_by_username(jwt: String) -> Result<Option<i32>, ServerFnError> {
+    let _ = verify_jwt(&jwt).await?;
+    let db = db().await;
+
+    let user: Option<users::Model> = Users::find()
+        .one(db)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    match user {
+        Some(u) => Ok(Some(u.id)),
+        None => Ok(None),
+    }
+}
+
+#[cfg(feature = "server")]
+async fn username_taken(username: &str, db: &'static DatabaseConnection) -> Result<bool, ServerFnError> {
+    let user: Option<users::Model> = Users::find()
+        .filter(users::Column::Username.eq(username))
+        .one(db)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    Ok(user.is_some())
 }

@@ -25,7 +25,6 @@ enum Route {
         AuthLogIn { flow: String },
 
         #[route("/error?:id")]
-        #[end_nest]
         AuthError { id: String },
 }
 

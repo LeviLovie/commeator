@@ -50,7 +50,7 @@ pub async fn generate_jwt() -> Result<String, ServerFnError> {
 }
 
 #[cfg(feature = "server")]
-async fn verify_jwt(token: &str) -> Result<users::Model, ServerFnError> {
+pub async fn verify_jwt(token: &str) -> Result<users::Model, ServerFnError> {
     let claims = jsonwebtoken::decode::<Claims>(
         token,
         &jsonwebtoken::DecodingKey::from_secret(&jwt_secret()),
@@ -70,7 +70,7 @@ async fn verify_jwt(token: &str) -> Result<users::Model, ServerFnError> {
     Ok(user)
 }
 
-#[server]
+#[post("/api/jwt/verify")]
 pub async fn verify_jwt_endpoint(jwt: String) -> Result<bool, ServerFnError> {
     Ok(verify_jwt(&jwt).await.is_ok())
 }
