@@ -18,7 +18,7 @@ pub use users::Users;
 
 use dioxus::prelude::*;
 
-use crate::backend::chats::ChatInfo;
+use crate::backend::{chats::ChatInfo, messages::Message};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum LeftPanel {
@@ -30,7 +30,7 @@ pub enum LeftPanel {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum RightPanel {
     Empty,
-    Chat(ChatInfo),
+    Chat,
     SettingsTab,
     UserProfile(i32),
 }
@@ -65,7 +65,7 @@ impl RightPanel {
 
                 match self {
                     RightPanel::Empty => rsx! { Empty {} },
-                    RightPanel::Chat(chat_info) => rsx! { Chat { chat_info: chat_info.clone() } },
+                    RightPanel::Chat => rsx! { Chat { } },
                     RightPanel::SettingsTab => rsx! { SettingsTab {} },
                     RightPanel::UserProfile(_user_id) => rsx! { Profile {} },
                 }
@@ -79,7 +79,9 @@ pub struct PanelContext {
     pub left: Signal<LeftPanel>,
     pub right: Signal<RightPanel>,
     pub layout: Signal<PanelLayout>,
-    pub chats: Signal<Option<Vec<ChatInfo>>>,
+    pub chats: Signal<(bool, Option<Vec<ChatInfo>>)>,
+    pub chat: Signal<(bool, Option<ChatInfo>)>,
+    pub messages: Signal<(bool, Option<Vec<Message>>)>,
 }
 
 impl Default for PanelContext {
@@ -88,7 +90,9 @@ impl Default for PanelContext {
             left: use_signal(|| LeftPanel::Chats),
             right: use_signal(|| RightPanel::Empty),
             layout: use_signal(|| PanelLayout::Desktop),
-            chats: use_signal(|| None),
+            chats: use_signal(|| (false, None)),
+            chat: use_signal(|| (false, None)),
+            messages: use_signal(|| (false, None)),
         }
     }
 }
