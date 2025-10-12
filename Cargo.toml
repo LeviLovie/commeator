@@ -9,6 +9,8 @@ anyhow = "1.0.100"
 async-once-cell = { version = "0.5.4", optional = true }
 dioxus = { version = "0.7.0-rc.1", features = ["router", "fullstack"] }
 gloo-net = "0.6.0"
+gloo-timers = { version = "0.3.0", features = ["futures"] }
+http = { version = "1.3.1", optional = true }
 sea-orm = { version = "1.1.17", optional = true, features = ["runtime-tokio-rustls", "sqlx-postgres"] }
 serde = { version = "1.0.225", features = ["derive"] }
 serde_json = "1.0.145"
@@ -20,8 +22,7 @@ default = []
 web = ["dioxus/web"]
 desktop = ["dioxus/desktop"]
 mobile = ["dioxus/mobile"]
-server = ["dioxus/server", "dep:sea-orm", "dep:async-once-cell"]
-async-once-cell = ["dep:async-once-cell"]
+server = ["dioxus/server", "dep:sea-orm", "dep:async-once-cell", "dep:http"]
 
 [profile]
 

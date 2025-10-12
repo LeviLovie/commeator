@@ -3428,6 +3428,8 @@ dependencies = [
  "async-once-cell",
  "dioxus",
  "gloo-net",
+ "gloo-timers",
+ "http",
  "sea-orm",
  "serde",
  "serde_json",

@@ -1,17 +1,22 @@
 pub mod users;
 
 #[cfg(feature = "server")]
+mod verify_kratos;
+
+#[cfg(feature = "server")]
 #[allow(unused_imports)]
 mod entities;
 
 #[cfg(feature = "server")]
 mod server_utils {
-    pub use super::entities::*;
     pub use super::entities::prelude::*;
-    pub use sea_orm::{EntityTrait, ColumnTrait, QueryFilter, ActiveValue::*, ActiveModelTrait};
+    pub use super::entities::*;
+    pub use super::verify_kratos::verify_kratos_cookie;
 
-    use sea_orm::{Database, DatabaseConnection};
+    pub use sea_orm::{ActiveModelTrait, ActiveValue::*, ColumnTrait, EntityTrait, QueryFilter};
+
     use async_once_cell::OnceCell;
+    use sea_orm::{Database, DatabaseConnection};
 
     use crate::config::server_utils::DATABASE_URL;
 

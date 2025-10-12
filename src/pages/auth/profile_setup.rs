@@ -1,21 +1,13 @@
 use dioxus::prelude::*;
 
-use crate::{auth::get_user, backend::users::setup_user, components::{CenteredForm, Spinner}};
+use crate::{backend::users::setup_user, components::CenteredForm};
 
 #[component]
 pub fn AuthProfileSetup() -> Element {
-    let user = use_resource(|| async { get_user().await });
-    if user().is_none() || user().as_ref().unwrap().is_none() {
-        return rsx! { Spinner {} };
-    }
-    let user = user().as_ref().unwrap().as_ref().unwrap().clone();
-
     let mut error = use_signal(|| None as Option<String>);
 
     let onsubmit = move |e: Event<FormData>| {
         e.prevent_default();
-
-        let email = user.identity.traits.email.clone();
 
         spawn(async move {
             let data = e.data();
@@ -27,7 +19,7 @@ pub fn AuthProfileSetup() -> Element {
                         error.set(Some("Invalid username".to_string()));
                         return;
                     }
-                }
+                },
                 None => {
                     error.set(Some("Username is required".to_string()));
                     return;
@@ -41,14 +33,14 @@ pub fn AuthProfileSetup() -> Element {
                         error.set(Some("Invalid username".to_string()));
                         return;
                     }
-                }
+                },
                 None => {
                     error.set(Some("Username is required".to_string()));
                     return;
                 }
             };
 
-            if let Err(e) = setup_user(email, username, nickname).await {
+            if let Err(e) = setup_user(username, nickname).await {
                 error.set(Some(format!("Failed to set up user: {}", e)));
                 return;
             }

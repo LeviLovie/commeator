@@ -1,8 +1,11 @@
 use dioxus::prelude::*;
-use serde::Deserialize;
 use gloo_net::http::Request;
+use serde::Deserialize;
 
-use crate::{components::{CenteredForm, Spinner}, config::url_login_flow};
+use crate::{
+    components::{CenteredForm, Spinner},
+    config::url_login_flow,
+};
 
 #[derive(Deserialize, Debug, Clone)]
 struct RegistrationFlow {
@@ -42,8 +45,7 @@ pub fn AuthLogIn(flow: String) -> Element {
                 .send()
                 .await?;
 
-            res.json::<RegistrationFlow>()
-                .await
+            res.json::<RegistrationFlow>().await
         }
     });
 
