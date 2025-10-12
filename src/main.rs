@@ -1,20 +1,32 @@
 mod auth;
+mod backend;
 mod components;
 mod config;
 mod pages;
 
 use dioxus::{logger::tracing::Level, prelude::*};
 
-use pages::{ErrorHandler, Home, LogIn};
+use pages::{AuthCallback, AuthError, AuthLogIn, AuthProfileSetup, Home};
 
 #[derive(Clone, Routable, PartialEq)]
+#[rustfmt::skip]
 enum Route {
     #[route("/")]
     Home,
-    #[route("/login?:flow")]
-    LogIn { flow: String },
-    #[route("/error?:id")]
-    ErrorHandler { id: String },
+
+    #[nest("/auth")]
+        #[route("/callback")]
+        AuthCallback,
+
+        #[route("/setup")]
+        AuthProfileSetup,
+
+        #[route("/login?:flow")]
+        AuthLogIn { flow: String },
+
+        #[route("/error?:id")]
+        #[end_nest]
+        AuthError { id: String },
 }
 
 fn main() {

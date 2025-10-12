@@ -1,7 +1,5 @@
-mod error;
+mod auth;
 mod home;
-mod login;
 
-pub use error::ErrorHandler;
+pub use auth::*;
 pub use home::Home;
-pub use login::LogIn;

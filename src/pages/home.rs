@@ -11,7 +11,7 @@ pub fn Home() -> Element {
     if user().is_none() || user().as_ref().unwrap().is_none() {
         return rsx! { Spinner {} };
     }
-    let user = user().unwrap().unwrap();
+    let user = user().as_ref().unwrap().as_ref().unwrap().clone();
 
     rsx! {
         CenteredForm {

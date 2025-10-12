@@ -8,3 +8,8 @@ pub fn url_login_flow(flow_id: &str) -> String {
         flow_id
     )
 }
+
+#[cfg(feature = "server")]
+pub mod server_utils {
+    pub const DATABASE_URL: &str = "postgresql://messenger@localhost/messenger";
+}

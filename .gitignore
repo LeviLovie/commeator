@@ -1,3 +1,4 @@
 target/
 kratos/kratos.yml
+.env
 .DS_Store

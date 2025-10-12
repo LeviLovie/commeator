@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 #[component]
-pub fn ErrorHandler(id: String) -> Element {
+pub fn AuthError(id: String) -> Element {
     rsx! {
         div {
             h1 { "Oops! Something went wrong." }

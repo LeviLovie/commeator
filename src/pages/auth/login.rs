@@ -32,7 +32,7 @@ struct InputAttributes {
 }
 
 #[component]
-pub fn LogIn(flow: String) -> Element {
+pub fn AuthLogIn(flow: String) -> Element {
     let flow_id = flow.clone();
     let flow = use_resource(move || {
         let flow_id = flow_id.clone();
