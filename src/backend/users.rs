@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "server")]
 mod server_utils {
@@ -9,6 +10,14 @@ mod server_utils {
 }
 #[cfg(feature = "server")]
 use server_utils::*;
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct UserData {
+    pub id: i32,
+    pub email: String,
+    pub username: String,
+    pub nickname: String,
+}
 
 #[post("/api/user/check", headers: HeaderMap)]
 pub async fn check_user() -> Result<bool, ServerFnError> {
@@ -26,6 +35,47 @@ pub async fn check_user() -> Result<bool, ServerFnError> {
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     Ok(user.is_some())
+}
+
+#[post("/api/user/me")]
+pub async fn get_my_user(jwt: String) -> Result<UserData, ServerFnError> {
+    let user_model = verify_jwt(&jwt).await?;
+
+    let user = UserData {
+        id: user_model.id,
+        email: user_model.email,
+        username: user_model.username,
+        nickname: user_model.nickname,
+    };
+
+    Ok(user)
+}
+
+#[post("/api/user/get")]
+pub async fn get_user(jwt: String, id: i32) -> Result<UserData, ServerFnError> {
+    let _ = verify_jwt(&jwt).await?;
+
+    let db = db().await;
+
+    let user_model: Option<users::Model> = Users::find()
+        .filter(users::Column::Id.eq(id))
+        .one(db)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let user: UserData = match user_model {
+        Some(u) => UserData {
+            id: u.id,
+            email: u.email,
+            username: u.username,
+            nickname: u.nickname,
+        },
+        None => {
+            return Err(ServerFnError::new("User not found".to_string()));
+        }
+    };
+
+    Ok(user)
 }
 
 #[post("/api/user/setup", headers: HeaderMap)]

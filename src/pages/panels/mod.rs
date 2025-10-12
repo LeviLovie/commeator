@@ -4,7 +4,6 @@ mod empty;
 mod nav_bar;
 mod profile;
 mod settings;
-mod settings_tab;
 mod users;
 
 pub use chat::Chat;
@@ -13,12 +12,11 @@ pub use empty::Empty;
 pub use nav_bar::NavBar;
 pub use profile::Profile;
 pub use settings::Settings;
-pub use settings_tab::SettingsTab;
 pub use users::Users;
 
 use dioxus::prelude::*;
 
-use crate::backend::{chats::ChatInfo, messages::Message};
+use crate::backend::{chats::ChatInfo, messages::Message, users::UserData};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum LeftPanel {
@@ -31,7 +29,6 @@ pub enum LeftPanel {
 pub enum RightPanel {
     Empty,
     Chat,
-    SettingsTab,
     UserProfile(i32),
 }
 
@@ -66,7 +63,6 @@ impl RightPanel {
                 match self {
                     RightPanel::Empty => rsx! { Empty {} },
                     RightPanel::Chat => rsx! { Chat { } },
-                    RightPanel::SettingsTab => rsx! { SettingsTab {} },
                     RightPanel::UserProfile(_user_id) => rsx! { Profile {} },
                 }
             }
@@ -79,6 +75,7 @@ pub struct PanelContext {
     pub left: Signal<LeftPanel>,
     pub right: Signal<RightPanel>,
     pub layout: Signal<PanelLayout>,
+    pub user: Signal<(bool, Option<UserData>)>,
     pub chats: Signal<(bool, Option<Vec<ChatInfo>>)>,
     pub chat: Signal<(bool, Option<ChatInfo>)>,
     pub messages: Signal<(bool, Option<Vec<Message>>)>,
@@ -90,6 +87,7 @@ impl Default for PanelContext {
             left: use_signal(|| LeftPanel::Chats),
             right: use_signal(|| RightPanel::Empty),
             layout: use_signal(|| PanelLayout::Desktop),
+            user: use_signal(|| (false, None)),
             chats: use_signal(|| (false, None)),
             chat: use_signal(|| (false, None)),
             messages: use_signal(|| (false, None)),
@@ -123,10 +121,7 @@ pub fn Panels() -> Element {
     match layout {
         PanelLayout::Desktop => rsx! {
             div {
-                class: "bg-gray-100 border-r border-gray-300 flex flex-col
-                        w-64 md:w-64 shrink-0
-                        md:flex
-                        hidden md:flex",
+                class: "bg-gray-100 border-r border-gray-300 flex flex-col w-64 md:w-64 shrink-0 md:flex hidden md:flex",
 
                 { panel_context.left.read().component() }
 
@@ -145,14 +140,21 @@ pub fn Panels() -> Element {
 
                 { if *panel_context.right.read() != RightPanel::Empty {
                     rsx! {
-                        { panel_context.right.read().component() }
+                        div {
+                            class: "flex-1 bg-white overflow-auto",
+
+                            { panel_context.right.read().component() }
+                        }
                     }
                 } else {
                     rsx! {
                         div {
-                            class: "flex-1 bg-white overflow-auto",
+                            class: "flex-1 flex flex-col md:hidden",
 
-                            { panel_context.left.read().component() }
+                            div {
+                                class: "flex-1 overflow-auto",
+                                { panel_context.left.read().component() }
+                            }
 
                             NavBar {}
                         }
