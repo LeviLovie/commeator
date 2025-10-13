@@ -52,13 +52,13 @@ pub async fn get_my_user(jwt: String) -> Result<UserInfo, ServerFnError> {
 }
 
 #[post("/api/user/get")]
-pub async fn get_user(jwt: String, id: i32) -> Result<UserInfo, ServerFnError> {
+pub async fn get_user(jwt: String, username: String) -> Result<UserInfo, ServerFnError> {
     let _ = verify_jwt(&jwt).await?;
 
     let db = db().await;
 
     let user_model: Option<users::Model> = Users::find()
-        .filter(users::Column::Id.eq(id))
+        .filter(users::Column::Username.eq(username))
         .one(db)
         .await
         .map_err(|e| ServerFnError::new(e.to_string()))?;
@@ -160,4 +160,27 @@ async fn username_taken(
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     Ok(user.is_some())
+}
+
+#[post("/api/user/list")]
+pub async fn list_users(jwt: String) -> Result<Vec<UserInfo>, ServerFnError> {
+    let _ = verify_jwt(&jwt).await?;
+    let db = db().await;
+
+    let user_models: Vec<users::Model> = Users::find()
+        .all(db)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let users: Vec<UserInfo> = user_models
+        .into_iter()
+        .map(|u| UserInfo {
+            id: u.id,
+            email: u.email,
+            username: u.username,
+            nickname: u.nickname,
+        })
+        .collect();
+
+    Ok(users)
 }

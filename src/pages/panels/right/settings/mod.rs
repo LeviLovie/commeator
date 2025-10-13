@@ -4,12 +4,21 @@ pub use account::SettingsAccount;
 
 use dioxus::prelude::*;
 
-use crate::pages::{Empty, PanelContext};
+use crate::pages::{panels::right::header::Header, Empty, PanelContext};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SettingsPage {
     Empty,
     Account,
+}
+
+impl std::fmt::Display for SettingsPage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SettingsPage::Empty => write!(f, "Settings"),
+            SettingsPage::Account => write!(f, "Account"),
+        }
+    }
 }
 
 #[component]
@@ -18,8 +27,12 @@ pub fn Settings() -> Element {
     let page = context.settings_page.read();
     info!("Rendering settings page: {:?}", *page);
 
-    match *page {
-        SettingsPage::Empty => rsx! { Empty {} },
-        SettingsPage::Account => rsx! { SettingsAccount {} },
+    rsx! {
+        Header { title: format!("{}", page) }
+
+        match *page {
+            SettingsPage::Empty => rsx! { Empty {} },
+            SettingsPage::Account => rsx! { SettingsAccount {} },
+        }
     }
 }

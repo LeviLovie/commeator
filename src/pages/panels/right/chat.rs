@@ -6,7 +6,7 @@ use crate::{
         messages::{list_messages, MessageInfo},
     },
     components::{IconButton, Spinner},
-    pages::{state::jwt, PanelContext, RightPanel},
+    pages::{panels::right::header::Header, state::jwt, PanelContext, RightPanel},
 };
 
 #[derive(Clone, PartialEq, Debug)]
@@ -61,7 +61,7 @@ pub fn Chat(chat_id: i32) -> Element {
     let messages = state.messages.as_ref().unwrap();
 
     rsx! {
-        ChatHeader { chat }
+        Header { title: "{chat.name}" }
 
         { messages.iter().map(|msg| rsx! {
             div {
@@ -79,30 +79,5 @@ pub fn Chat(chat_id: i32) -> Element {
                 }
             }
         }) }
-    }
-}
-
-#[component]
-pub fn ChatHeader(chat: ChatInfo) -> Element {
-    let mut panel_state = use_context::<PanelContext>();
-
-    rsx! {
-        div {
-            class: "flex chat-header p-2 border-b border-gray-300, text-center",
-
-            IconButton {
-                alt: "back",
-                icon: asset!("assets/icons/back.svg"),
-                onclick: move |_| {
-                    panel_state.right.set(RightPanel::Empty);
-                },
-            }
-
-            label {
-                class: "w-full text-2xl font-bold",
-
-                "{chat.name}"
-            }
-        }
     }
 }
