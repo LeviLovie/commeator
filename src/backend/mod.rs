@@ -17,7 +17,7 @@ mod server_utils {
     pub use super::jwt::verify_jwt;
     pub use super::verify_kratos::verify_kratos_cookie;
 
-    pub use sea_orm::{ActiveModelTrait, ActiveValue::*, ColumnTrait, EntityTrait, QueryFilter};
+    pub use sea_orm::{ActiveModelTrait, ActiveValue::*, ColumnTrait, EntityTrait, QueryFilter, JoinType, sea_query::Query, QuerySelect, RelationTrait};
 
     use async_once_cell::OnceCell;
     use sea_orm::{Database, DatabaseConnection};

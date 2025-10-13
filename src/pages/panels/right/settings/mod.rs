@@ -25,7 +25,6 @@ impl std::fmt::Display for SettingsPage {
 pub fn Settings() -> Element {
     let context = use_context::<PanelContext>();
     let page = context.settings_page.read();
-    info!("Rendering settings page: {:?}", *page);
 
     rsx! {
         Header { title: format!("{}", page) }

@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 use crate::{
-    backend::users::{get_user, UserInfo}, components::{Avatar, Spinner}, pages::{panels::right::header::Header, state::jwt}
+    backend::{chats::verify_private_chat, users::{get_user, UserInfo}}, components::{Avatar, Spinner}, pages::{panels::right::header::Header, state::jwt, LeftPanel, PanelContext, RightPanel}
 };
 
 #[derive(Clone, PartialEq, Debug)]
@@ -46,22 +46,46 @@ pub fn Profile(username: String) -> Element {
         Header { title: "{user.nickname}" }
 
         div {
-            class: "p-4",
+            class: "p-4 w-full flex flex-col items-center",
 
             div {
-                class: "flex flex-col items-center space-y-4",
-
                 Avatar { email: user.email.clone() },
             }
 
-            p {
-                class: "text-4xl font-bold text-center",
-                {user.nickname.clone()}
+            div {
+                class: "mb-4",
+
+                p {
+                    class: "text-4xl font-bold",
+                    {user.nickname.clone()}
+                }
+
+                p {
+                    class: "text-s",
+                    "@{user.username}"
+                }
             }
 
-            p {
-                class: "text-s text-center",
-                "@{user.username}"
+            div {
+                button {
+                    class: "text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2",
+                    onclick: move |_| {
+                        let username = user.username.clone();
+                        spawn(async move {
+                            match verify_private_chat(jwt().await, username).await {
+                                Ok(chat_id) => {
+                                    let mut context = use_context::<PanelContext>();
+                                    context.left.set(LeftPanel::Chats);
+                                    context.right.set(RightPanel::Chat(chat_id));
+                                }
+                                Err(e) => {
+                                    error!("Failed to verify or create private chat: {}", e);
+                                }
+                            }
+                        });
+                    },
+                    "Message"
+                }
             }
         }
     }

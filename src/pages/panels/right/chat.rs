@@ -3,10 +3,10 @@ use dioxus::prelude::*;
 use crate::{
     backend::{
         chats::{get_chat, ChatInfo},
-        messages::{list_messages, MessageInfo},
+        messages::{list_messages, send_message, MessageInfo},
     },
-    components::{IconButton, Spinner},
-    pages::{panels::right::header::Header, state::jwt, PanelContext, RightPanel},
+    components::Spinner,
+    pages::{panels::right::header::Header, state::jwt},
 };
 
 #[derive(Clone, PartialEq, Debug)]
@@ -63,21 +63,76 @@ pub fn Chat(chat_id: i32) -> Element {
     rsx! {
         Header { title: "{chat.name}" }
 
-        { messages.iter().map(|msg| rsx! {
-            div {
-                class: "p-2 border-b border-gray-300",
-                div {
-                    class: "font-bold",
-                    "User ID: {msg.sender_id}"
-                }
-                div {
-                    "{msg.content}"
-                }
-                div {
-                    class: "text-sm text-gray-500",
-                    "Sent at: {msg.created_at}"
-                }
-            }
+        { messages.iter().map(|message| rsx! {
+            MessageItem { message: message.clone() }
         }) }
+
+        MessageBox { chat_id: chat.id }
+    }
+}
+
+#[component]
+pub fn MessageItem(message: MessageInfo) -> Element {
+    rsx! {
+        div {
+            class: "p-2 border-b border-gray-300",
+
+            div {
+                class: "font-bold",
+                "User ID: {message.sender_id}"
+            }
+
+            div {
+                "{message.content}"
+            }
+
+            div {
+                class: "text-sm text-gray-500",
+                "Sent at: {message.created_at}"
+            }
+        }
+    }
+}
+
+#[component]
+pub fn MessageBox(chat_id: i32) -> Element {
+    rsx! {
+        form {
+            class: "flex-1 flex-row p-2 border-t border-gray-300",
+            onsubmit: move |e| {
+                e.prevent_default();
+                let data = e.data();
+
+                let message = match data.get_first("message") {
+                    Some(v) => match v {
+                        FormValue::Text(s) if !s.trim().is_empty() => s.trim().to_string(),
+                        _ => {
+                            return;
+                        }
+                    },
+                    None => {
+                        return;
+                    }
+                };
+
+                spawn(async move {
+                    if let Err(e) = send_message(jwt().await, chat_id, message).await {
+                        error!("Failed to send message: {}", e);
+                    }
+                });
+            },
+
+            textarea {
+                class: "w-full p-2 border border-gray-300 rounded",
+                name: "message",
+                placeholder: "Type your message..."
+            }
+
+            button {
+                class: "mt-2 p-2 bg-blue-500 text-white rounded",
+                type: "submit",
+                "Send"
+            }
+        }
     }
 }

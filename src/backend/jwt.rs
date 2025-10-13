@@ -49,7 +49,6 @@ pub async fn generate_jwt() -> Result<String, ServerFnError> {
     )
     .map_err(|e| ServerFnError::new(e.to_string()))?;
 
-    info!("Generated JWT for user {}", user.email);
     Ok(token)
 }
 

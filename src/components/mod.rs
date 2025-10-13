@@ -7,5 +7,5 @@ mod spinner;
 pub use avatar::Avatar;
 pub use centered_form::CenteredForm;
 pub use icon_button::IconButton;
-pub use logout::LogOut;
+pub use logout::{logout, LogOut};
 pub use spinner::Spinner;

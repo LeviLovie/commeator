@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 use crate::{
-    backend::users::{list_users, UserInfo},
+    backend::{users::{list_users_exclude_me, UserInfo}},
     components::{Avatar, Spinner},
     pages::{panels::api_data::use_api_data, state::jwt, ApiData, Item, PanelContext, RightPanel},
 };
@@ -14,7 +14,7 @@ pub struct UsersContext {
 #[component]
 pub fn Users() -> Element {
     {
-        let users = use_api_data(|| async { list_users(jwt().await).await });
+        let users = use_api_data(|| async { list_users_exclude_me(jwt().await).await });
         let context = UsersContext { users };
         use_context_provider(|| context.clone());
     }

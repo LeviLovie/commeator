@@ -12,7 +12,7 @@ pub struct Model {
     #[sea_orm(column_type = "Text")]
     pub content: String,
     pub created_at: DateTime,
-    pub edited_at: DateTime,
+    pub edited_at: Option<DateTime>,
     pub deleted: bool,
 }
 

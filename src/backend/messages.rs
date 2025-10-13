@@ -1,5 +1,6 @@
 use dioxus::prelude::*;
-pub use serde::{Deserialize, Serialize};
+use chrono::NaiveDateTime;
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "server")]
 mod server_utils {
@@ -13,8 +14,8 @@ pub struct MessageInfo {
     pub id: i32,
     pub sender_id: i32,
     pub content: String,
-    pub created_at: String,
-    pub edited_at: String,
+    pub created_at: NaiveDateTime,
+    pub edited_at: Option<NaiveDateTime>,
 }
 
 #[post("/api/messages/list")]
@@ -47,10 +48,43 @@ pub async fn list_messages(jwt: String, chat_id: i32) -> Result<Vec<MessageInfo>
             id: msg.id,
             sender_id: msg.sender_id,
             content: msg.content,
-            created_at: msg.created_at.to_string(),
-            edited_at: msg.edited_at.to_string(),
+            created_at: msg.created_at,
+            edited_at: msg.edited_at,
         })
         .collect();
 
     Ok(messages)
+}
+
+#[post("/api/messages/send")]
+pub async fn send_message(jwt: String, chat_id: i32, content: String) -> Result<(), ServerFnError> {
+    let user = verify_jwt(&jwt).await?;
+    let db = db().await;
+
+    let chat_member: Option<chat_members::Model> = ChatMembers::find()
+        .filter(chat_members::Column::ChatId.eq(chat_id))
+        .filter(chat_members::Column::UserId.eq(user.id))
+        .one(db)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    if chat_member.is_none() {
+        return Err(ServerFnError::new(
+            "User is not a member of this chat".to_string(),
+        ));
+    }
+
+    let new_message = messages::ActiveModel {
+        chat_id: Set(chat_id),
+        sender_id: Set(user.id),
+        content: Set(content.clone()),
+        deleted: Set(false),
+        ..Default::default()
+    };
+
+    new_message
+        .insert(db)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    Ok(())
 }

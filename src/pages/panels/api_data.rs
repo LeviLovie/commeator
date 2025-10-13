@@ -45,7 +45,6 @@ where
         move || {
             let mut data = data;
             async move {
-                info!("Starting data load");
                 match load_fn().await {
                     Ok(result) => data.set(ApiData::loaded(result)),
                     Err(err) => data.set(ApiData::error(err)),

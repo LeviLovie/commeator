@@ -40,7 +40,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(Expr::current_timestamp()),
                     )
-                    .col(timestamp(Messages::EditedAt).not_null())
+                    .col(timestamp_null(Messages::EditedAt))
                     .col(boolean(Messages::Deleted).not_null().default(false))
                     .foreign_key(
                         ForeignKey::create()

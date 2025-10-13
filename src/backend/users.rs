@@ -184,3 +184,27 @@ pub async fn list_users(jwt: String) -> Result<Vec<UserInfo>, ServerFnError> {
 
     Ok(users)
 }
+
+#[post("/api/user/list_exclude_me")]
+pub async fn list_users_exclude_me(jwt: String) -> Result<Vec<UserInfo>, ServerFnError> {
+    let user = verify_jwt(&jwt).await?;
+    let db = db().await;
+
+    let user_models: Vec<users::Model> = Users::find()
+        .filter(users::Column::Id.ne(user.id))
+        .all(db)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let users: Vec<UserInfo> = user_models
+        .into_iter()
+        .map(|u| UserInfo {
+            id: u.id,
+            email: u.email,
+            username: u.username,
+            nickname: u.nickname,
+        })
+        .collect();
+
+    Ok(users)
+}
