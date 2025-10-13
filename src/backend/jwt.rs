@@ -11,8 +11,8 @@ pub struct Claims {
 mod server_utils {
     pub use dioxus::prelude::dioxus_fullstack::HeaderMap;
 
-    pub use crate::config::jwt_secret;
     pub use crate::backend::server_utils::*;
+    pub use crate::config::jwt_secret;
 }
 #[cfg(feature = "server")]
 use server_utils::*;
@@ -42,8 +42,12 @@ pub async fn generate_jwt() -> Result<String, ServerFnError> {
     };
 
     let header = jsonwebtoken::Header::default();
-    let token = jsonwebtoken::encode(&header, &claims, &jsonwebtoken::EncodingKey::from_secret(&jwt_secret()))
-        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    let token = jsonwebtoken::encode(
+        &header,
+        &claims,
+        &jsonwebtoken::EncodingKey::from_secret(&jwt_secret()),
+    )
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     info!("Generated JWT for user {}", user.email);
     Ok(token)

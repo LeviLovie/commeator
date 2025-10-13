@@ -12,7 +12,7 @@ mod server_utils {
 use server_utils::*;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct UserData {
+pub struct UserInfo {
     pub id: i32,
     pub email: String,
     pub username: String,
@@ -38,10 +38,10 @@ pub async fn check_user() -> Result<bool, ServerFnError> {
 }
 
 #[post("/api/user/me")]
-pub async fn get_my_user(jwt: String) -> Result<UserData, ServerFnError> {
+pub async fn get_my_user(jwt: String) -> Result<UserInfo, ServerFnError> {
     let user_model = verify_jwt(&jwt).await?;
 
-    let user = UserData {
+    let user = UserInfo {
         id: user_model.id,
         email: user_model.email,
         username: user_model.username,
@@ -52,7 +52,7 @@ pub async fn get_my_user(jwt: String) -> Result<UserData, ServerFnError> {
 }
 
 #[post("/api/user/get")]
-pub async fn get_user(jwt: String, id: i32) -> Result<UserData, ServerFnError> {
+pub async fn get_user(jwt: String, id: i32) -> Result<UserInfo, ServerFnError> {
     let _ = verify_jwt(&jwt).await?;
 
     let db = db().await;
@@ -63,8 +63,8 @@ pub async fn get_user(jwt: String, id: i32) -> Result<UserData, ServerFnError> {
         .await
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
-    let user: UserData = match user_model {
-        Some(u) => UserData {
+    let user: UserInfo = match user_model {
+        Some(u) => UserInfo {
             id: u.id,
             email: u.email,
             username: u.username,
@@ -149,7 +149,10 @@ pub async fn user_by_username(jwt: String) -> Result<Option<i32>, ServerFnError>
 }
 
 #[cfg(feature = "server")]
-async fn username_taken(username: &str, db: &'static DatabaseConnection) -> Result<bool, ServerFnError> {
+async fn username_taken(
+    username: &str,
+    db: &'static DatabaseConnection,
+) -> Result<bool, ServerFnError> {
     let user: Option<users::Model> = Users::find()
         .filter(users::Column::Username.eq(username))
         .one(db)

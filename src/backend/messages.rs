@@ -9,7 +9,7 @@ mod server_utils {
 use server_utils::*;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct Message {
+pub struct MessageInfo {
     pub id: i32,
     pub sender_id: i32,
     pub content: String,
@@ -18,7 +18,7 @@ pub struct Message {
 }
 
 #[post("/api/messages/list")]
-pub async fn list_messages(jwt: String, chat_id: i32) -> Result<Vec<Message>, ServerFnError> {
+pub async fn list_messages(jwt: String, chat_id: i32) -> Result<Vec<MessageInfo>, ServerFnError> {
     let user = verify_jwt(&jwt).await?;
     let db = db().await;
 
@@ -29,7 +29,9 @@ pub async fn list_messages(jwt: String, chat_id: i32) -> Result<Vec<Message>, Se
         .await
         .map_err(|e| ServerFnError::new(e.to_string()))?;
     if chat_member.is_none() {
-        return Err(ServerFnError::new("User is not a member of this chat".to_string()));
+        return Err(ServerFnError::new(
+            "User is not a member of this chat".to_string(),
+        ));
     }
 
     let message_models: Vec<messages::Model> = Messages::find()
@@ -41,7 +43,7 @@ pub async fn list_messages(jwt: String, chat_id: i32) -> Result<Vec<Message>, Se
 
     let messages = message_models
         .into_iter()
-        .map(|msg| Message {
+        .map(|msg| MessageInfo {
             id: msg.id,
             sender_id: msg.sender_id,
             content: msg.content,

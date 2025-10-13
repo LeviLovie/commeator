@@ -43,3 +43,35 @@ pub async fn list_chats(jwt: String) -> Result<Vec<ChatInfo>, ServerFnError> {
 
     Ok(chats)
 }
+
+#[post("/api/chats/get")]
+pub async fn get_chat(jwt: String, chat_id: i32) -> Result<ChatInfo, ServerFnError> {
+    let user = verify_jwt(&jwt).await?;
+    let db = db().await;
+
+    let is_member = ChatMembers::find()
+        .filter(chat_members::Column::ChatId.eq(chat_id))
+        .filter(chat_members::Column::UserId.eq(user.id))
+        .one(db)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .is_some();
+
+    if !is_member {
+        return Err(ServerFnError::new("Not a member of the chat".to_string()));
+    }
+
+    let chat_model: chats::Model = Chats::find_by_id(chat_id)
+        .one(db)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Chat not found".to_string()))?;
+
+    let chat = ChatInfo {
+        id: chat_model.id,
+        name: chat_model.name,
+        is_group: chat_model.is_group,
+    };
+
+    Ok(chat)
+}

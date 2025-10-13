@@ -1,165 +1,103 @@
-mod chat;
-mod chats;
-mod empty;
+mod api_data;
+mod left;
 mod nav_bar;
-mod profile;
-mod settings;
-mod users;
+mod right;
 
-pub use chat::Chat;
-pub use chats::Chats;
-pub use empty::Empty;
+pub use api_data::ApiData;
+pub use left::*;
 pub use nav_bar::NavBar;
-pub use profile::Profile;
-pub use settings::Settings;
-pub use users::Users;
+pub use right::*;
 
 use dioxus::prelude::*;
 
-use crate::backend::{chats::ChatInfo, messages::Message, users::UserData};
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum LeftPanel {
-    Chats,
-    Users,
-    Settings,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum RightPanel {
-    Empty,
-    Chat,
-    UserProfile(i32),
-}
+use crate::{
+    backend::users::{get_my_user, UserInfo},
+    pages::{panels::api_data::use_api_data, state::jwt},
+};
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub enum PanelLayout {
     Desktop,
     Mobile,
-}
-
-impl LeftPanel {
-    pub fn component(&self) -> Element {
-        rsx! {
-            div {
-                class: "p-1",
-
-                match self {
-                    LeftPanel::Chats => rsx! { Chats {} },
-                    LeftPanel::Users => rsx! { Users {} },
-                    LeftPanel::Settings => rsx! { Settings {} },
-                }
-            }
-        }
-    }
-}
-
-impl RightPanel {
-    pub fn component(&self) -> Element {
-        rsx! {
-            div {
-                class: "p-1",
-
-                match self {
-                    RightPanel::Empty => rsx! { Empty {} },
-                    RightPanel::Chat => rsx! { Chat { } },
-                    RightPanel::UserProfile(_user_id) => rsx! { Profile {} },
-                }
-            }
-        }
-    }
 }
 
 #[derive(Clone)]
 pub struct PanelContext {
     pub left: Signal<LeftPanel>,
     pub right: Signal<RightPanel>,
-    pub layout: Signal<PanelLayout>,
-    pub user: Signal<(bool, Option<UserData>)>,
-    pub chats: Signal<(bool, Option<Vec<ChatInfo>>)>,
-    pub chat: Signal<(bool, Option<ChatInfo>)>,
-    pub messages: Signal<(bool, Option<Vec<Message>>)>,
-}
-
-impl Default for PanelContext {
-    fn default() -> Self {
-        Self {
-            left: use_signal(|| LeftPanel::Chats),
-            right: use_signal(|| RightPanel::Empty),
-            layout: use_signal(|| PanelLayout::Desktop),
-            user: use_signal(|| (false, None)),
-            chats: use_signal(|| (false, None)),
-            chat: use_signal(|| (false, None)),
-            messages: use_signal(|| (false, None)),
-        }
-    }
+    pub user: Signal<ApiData<UserInfo>>,
+    pub settings_page: Signal<SettingsPage>,
 }
 
 #[component]
 pub fn Panels() -> Element {
-    let panel_context = use_context::<PanelContext>();
+    let mut layout = use_signal(|| PanelLayout::Desktop);
 
-    #[cfg(target_arch = "wasm32")]
-    {
-        let mut context = use_context::<PanelContext>();
-        use_effect(move || {
-            let width = web_sys::window()
-                .unwrap()
-                .inner_width()
-                .unwrap()
-                .as_f64()
-                .unwrap();
-            context.layout.set(if width >= 768.0 {
-                PanelLayout::Desktop
-            } else {
-                PanelLayout::Mobile
-            });
+    let left = use_signal(|| LeftPanel::Chats);
+    let right = use_signal(|| RightPanel::Empty);
+    let user = use_api_data(|| async { get_my_user(jwt().await).await });
+    let settings_page = use_signal(|| SettingsPage::Empty);
+
+    let context = PanelContext { left, right, user, settings_page };
+
+    use_context_provider(|| context.clone());
+
+    use_effect(move || {
+        let width = web_sys::window()
+            .unwrap()
+            .inner_width()
+            .unwrap()
+            .as_f64()
+            .unwrap();
+        layout.set(if width >= 768.0 {
+            PanelLayout::Desktop
+        } else {
+            PanelLayout::Mobile
         });
-    }
+    });
 
-    let layout = panel_context.layout.read().clone();
-    match layout {
+    match layout().clone() {
         PanelLayout::Desktop => rsx! {
             div {
                 class: "bg-gray-100 border-r border-gray-300 flex flex-col w-64 md:w-64 shrink-0 md:flex hidden md:flex",
-
-                { panel_context.left.read().component() }
-
+                LeftPanelWrapper {}
                 NavBar {}
             }
 
             div {
                 class: "flex-1 bg-white overflow-auto",
-
-                { panel_context.right.read().component() }
+                RightPanelWrapper {}
             }
         },
         PanelLayout::Mobile => rsx! {
             div {
-                class: "flex-1 bg-white overflow-auto md:hidden flex",
+                class: "flex-1 flex-col h-screen md:hidden",
 
-                { if *panel_context.right.read() != RightPanel::Empty {
+                { if !matches!(*context.right.read(), RightPanel::Empty) {
                     rsx! {
                         div {
-                            class: "flex-1 bg-white overflow-auto",
-
-                            { panel_context.right.read().component() }
+                            class: "flex-1 overflow-auto",
+                            RightPanelWrapper {}
                         }
                     }
                 } else {
                     rsx! {
                         div {
-                            class: "flex-1 flex flex-col md:hidden",
-
+                            class: "flex-1 relative h-full",
+                            
                             div {
-                                class: "flex-1 overflow-auto",
-                                { panel_context.left.read().component() }
+                                class: "bg-gray-100 border-gray-300 flex flex-col md:flex",
+                                LeftPanelWrapper {}
                             }
 
-                            NavBar {}
+                            div {
+                                class: "absolute bottom-0 left-0 w-full h-16 bg-white border-t border-gray-300 pb-[env(safe-area-inset-bottom)]",
+                                NavBar {}
+                            }
                         }
                     }
-                }}
+                } }
             }
         },
     }

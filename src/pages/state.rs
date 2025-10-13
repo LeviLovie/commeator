@@ -10,7 +10,7 @@ pub async fn request_jwt() -> Result<(), ServerFnError> {
     let jwt = generate_jwt().await?;
 
     JWT.lock().unwrap().replace(jwt);
-    
+
     Ok(())
 }
 
