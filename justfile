@@ -1,6 +1,10 @@
 serve:
     @cd web && dx serve --web --port=3000
 
+neocurl:
+    cd server/neocurl && \
+        ncurl test
+
 m_up:
     sea-orm-cli migrate up
 

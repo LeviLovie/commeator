@@ -46,6 +46,22 @@ pub async fn verify_jwt(headers: &HeaderMap) -> anyhow::Result<users::Model> {
     Ok(user)
 }
 
+pub async fn generate(uuid: Uuid) -> anyhow::Result<String> {
+    let expiration = chrono::Utc::now() + chrono::Duration::hours(24);
+    let claims = Claims {
+        sub: uuid,
+        exp: expiration.timestamp(),
+    };
+
+    let header = jsonwebtoken::Header::default();
+    jsonwebtoken::encode(
+        &header,
+        &claims,
+        &jsonwebtoken::EncodingKey::from_secret(&jwt_secret()),
+    )
+        .context("Failed to encode JWT")
+}
+
 pub async fn endpoint_generate(headers: HeaderMap) -> Result<Response, AppError> {
     let email = verify_kratos_cookie(&headers)
         .await
@@ -62,19 +78,7 @@ pub async fn endpoint_generate(headers: HeaderMap) -> Result<Response, AppError>
         .context("Failed to query user from database")?
         .ok_or_else(|| anyhow!("User not found"))?;
 
-    let expiration = chrono::Utc::now() + chrono::Duration::hours(24);
-    let claims = Claims {
-        sub: user.uuid,
-        exp: expiration.timestamp(),
-    };
-
-    let header = jsonwebtoken::Header::default();
-    let token = jsonwebtoken::encode(
-        &header,
-        &claims,
-        &jsonwebtoken::EncodingKey::from_secret(&jwt_secret()),
-    )
-        .context("Failed to encode JWT")?;
+    let token = generate(user.uuid).await?;
 
     let response = GenerateJwtResponse(token);
     Ok(Json(response).into_response())

@@ -7,6 +7,31 @@ use anyhow::{anyhow, Context};
 use crate::{db, schema::*, verify_jwt, verify_kratos_cookie, AppError};
 use utils::requests::{GetUserRequest, GetUserResponse, ListUsersRequest, ListUsersResponse, SetupUserRequest, SetupUserResponse, UserInfo};
 
+#[cfg(debug_assertions)]
+pub async fn debug_user(Json(body): Json<UserInfo>) -> Result<Response, AppError> {
+    tracing::info!("Debug user creation: {:?}", body);
+    let db = db().await;
+    tracing::info!("Database connection established");
+
+    let user_model = users::ActiveModel {
+        email: Set(format!("{}-{}", body.email, sea_orm::prelude::Uuid::new_v4())),
+        username: Set(body.username),
+        nickname: Set(body.nickname),
+        ..Default::default()
+    };
+    let user = user_model
+        .insert(db)
+        .await
+        .context("Failed to insert new user into database")?;
+
+    let jwt = crate::jwt::generate(user.uuid)
+        .await
+        .context("Failed to generate JWT")?;
+
+    let response = utils::requests::GenerateJwtResponse(jwt);
+    Ok(Json(response).into_response())
+}
+
 pub async fn get_me(headers: HeaderMap) -> Result<Response, AppError> {
     let user_model = verify_jwt(&headers).await?;
 
