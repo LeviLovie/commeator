@@ -3,6 +3,7 @@ WORKDIR /app
 
 COPY utils ./utils
 COPY server/Cargo.toml server/Cargo.lock ./server/
+COPY config/server/env ./server/.env
 
 RUN mkdir server/src && \
     echo "fn main() {println!(\"CODE WAS NOT REPLACED\");}" > server/src/dummy_main.rs && \

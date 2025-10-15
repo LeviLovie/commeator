@@ -26,6 +26,8 @@ services:
     env_file: ./config/psql/env
     volumes:
       - ./config/psql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5555:5432"
 
   server:
     build:
@@ -33,7 +35,7 @@ services:
       dockerfile: Dockerfile.server
     env_file: ./config/server/env
     ports:
-      - "3300:3000"
+      - "3000:3000"
     depends_on:
       - hydra
       - kratos
@@ -44,7 +46,7 @@ services:
       context: .
       dockerfile: Dockerfile.web
     ports:
-      - "7700:80"
+      - "8000:80"
     depends_on:
       - hydra
       - kratos

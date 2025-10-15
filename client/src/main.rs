@@ -27,12 +27,7 @@ enum Route {
 }
 
 fn main() {
-    let level = if cfg!(debug_assertions) {
-        Level::INFO
-    } else {
-        Level::WARN
-    };
-    dioxus::logger::init(level).expect("failed to initialize logger");
+    dioxus::logger::init(Level::INFO).expect("failed to initialize logger");
 
     dioxus::launch(App);
 }

@@ -26,11 +26,13 @@ pub mod endpoints {
         pub const URI_LOGOUT: &str = "/self-service/logout/browser";
 
         pub fn url_login_flow(flow_id: &str) -> String {
-            format!(
+            let url = format!(
                 "{}/self-service/login/flows?id={}",
                 super::super::auth_base_url(),
                 flow_id
-            )
+            );
+            tracing::warn!("Login Flow URL: {}", url);
+            url
         }
     }
 
