@@ -1,6 +1,5 @@
 use dioxus::prelude::*;
 use uuid::Uuid;
-use std::rc::Rc;
 
 use crate::{
     backend::{get_chat, list_messages, send_message},

@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use serde::Deserialize;
 
 use crate::backend::Request;
-use utils::config::auth::URL_LOGOUT;
+use utils::config::{endpoints::auth::URI_LOGOUT, on_auth_base_url};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct LogOutResponse {
@@ -21,7 +21,7 @@ pub fn LogOut() -> Element {
 }
 
 pub async fn logout() {
-    match Request::get(URL_LOGOUT)
+    match Request::get(&on_auth_base_url(URI_LOGOUT))
         .build()
         .send_decode::<LogOutResponse>()
         .await

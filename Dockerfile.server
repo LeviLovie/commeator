@@ -1,0 +1,26 @@
+FROM rust:latest AS builder
+WORKDIR /app
+
+COPY utils ./utils
+COPY server/Cargo.toml server/Cargo.lock ./server/
+
+RUN mkdir server/src && \
+    echo "fn main() {println!(\"CODE WAS NOT REPLACED\");}" > server/src/dummy_main.rs && \
+    echo "[[bin]]\nname = \"server\"\npath = \"src/dummy_main.rs\"" >> server/Cargo.toml && \
+    cargo build --release --manifest-path=./server/Cargo.toml && \
+    rm -rf server/src
+
+COPY server/src ./server/src
+COPY server/Cargo.toml ./server/
+
+RUN cargo build --release --manifest-path=./server/Cargo.toml
+
+
+
+FROM debian:trixie-slim
+
+COPY --from=builder /app/server/target/release/server /usr/local/bin/server
+
+ENV RUST_LOG=debug
+
+ENTRYPOINT ["/usr/local/bin/server"]

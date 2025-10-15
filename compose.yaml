@@ -7,6 +7,7 @@ services:
       - "4445:4445"
     environment:
       - DSN=memory
+      - LOG_LEVEL=error
 
   kratos:
     image: oryd/kratos:v1.3.1
@@ -17,20 +18,35 @@ services:
     ports:
       - "4433:4433"
       - "4434:4434"
+    environment:
+      - LOG_LEVEL=error
 
   postgres:
     image: postgres:18
-    environment:
-      POSTGRES_USER: messenger
-      POSTGRES_DB: messenger
+    env_file: ./config/psql/env
     volumes:
-      - ./config/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./config/psql/init.sql:/docker-entrypoint-initdb.d/init.sql
 
-  # web:
-  #   build: ./dioxus
-  #   ports:
-  #     - "8080:80"
-  #   depends_on:
-  #     - hydra
-  #     - kratos
-  #     - postgres
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    env_file: ./config/server/env
+    ports:
+      - "3300:3000"
+    depends_on:
+      - hydra
+      - kratos
+      - postgres
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "7700:80"
+    depends_on:
+      - hydra
+      - kratos
+      - postgres
+      - server

@@ -35,24 +35,24 @@ async fn main() {
     let mut app = Router::new();
 
     app = app
-        .route(endpoints::jwt::G_GENERATE, get(jwt::endpoint_generate))
-        .route(endpoints::jwt::G_VERIFY, get(jwt::endpoint_verify));
+        .route(endpoints::jwt::IG_GENERATE, get(jwt::endpoint_generate))
+        .route(endpoints::jwt::IG_VERIFY, get(jwt::endpoint_verify));
 
     app = app
-        .route(endpoints::chats::G_LIST, get(chats::list_chats))
-        .route(endpoints::chats::P_GET, post(chats::get_chat))
-        .route(endpoints::chats::P_VERIFY_PRIVATE, post(chats::verify_private_chat));
+        .route(endpoints::chats::IG_LIST, get(chats::list_chats))
+        .route(endpoints::chats::IP_GET, post(chats::get_chat))
+        .route(endpoints::chats::IP_VERIFY_PRIVATE, post(chats::verify_private_chat));
 
     app = app
-        .route(endpoints::messages::P_LIST, post(messages::list_messages))
-        .route(endpoints::messages::P_SEND, post(messages::send_message));
+        .route(endpoints::messages::IP_LIST, post(messages::list_messages))
+        .route(endpoints::messages::IP_SEND, post(messages::send_message));
 
     app = app
-        .route(endpoints::users::G_CHECK, get(users::check_user))
-        .route(endpoints::users::G_ME, get(users::get_me))
-        .route(endpoints::users::P_GET, post(users::get_user))
-        .route(endpoints::users::P_SETUP, post(users::setup_user))
-        .route(endpoints::users::P_LIST, post(users::list_users));
+        .route(endpoints::users::IG_CHECK, get(users::check_user))
+        .route(endpoints::users::IG_ME, get(users::get_me))
+        .route(endpoints::users::IP_GET, post(users::get_user))
+        .route(endpoints::users::IP_SETUP, post(users::setup_user))
+        .route(endpoints::users::IP_LIST, post(users::list_users));
 
     #[cfg(debug_assertions)]
     {

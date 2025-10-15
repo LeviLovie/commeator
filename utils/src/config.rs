@@ -1,21 +1,13 @@
-pub mod auth {
-    pub const URL_WHOAMI: &str = "http://localhost:4433/sessions/whoami";
-    pub const URL_LOGIN: &str = "http://localhost:4433/self-service/login/browser";
-    pub const URL_LOGOUT: &str = "http://localhost:4433/self-service/logout/browser";
-
-    pub fn url_login_flow(flow_id: &str) -> String {
-        format!(
-            "http://localhost:4433/self-service/login/flows?id={}",
-            flow_id
-        )
-    }
-}
-
-pub const SERVER_URL: &str = "http://localhost:3000";
-
 #[cfg(feature = "server")]
 pub mod server {
-    pub const DATABASE_URL: &str = "postgresql://messenger@localhost/messenger";
+    pub fn db_url() -> String {
+        dotenv::dotenv().ok();
+
+        match std::env::var("DATABASE_URL") {
+            Ok(url) => url,
+            Err(_) => panic!("DATABASE_URL not present"),
+        }
+    }
 
     pub fn jwt_secret() -> Vec<u8> {
         dotenv::dotenv().ok();
@@ -28,31 +20,93 @@ pub mod server {
 }
 
 pub mod endpoints {
+    pub mod auth {
+        pub const URI_WHOAMI: &str = "/sessions/whoami";
+        pub const URI_LOGIN: &str = "/self-service/login/browser";
+        pub const URI_LOGOUT: &str = "/self-service/logout/browser";
+
+        pub fn url_login_flow(flow_id: &str) -> String {
+            format!(
+                "{}/self-service/login/flows?id={}",
+                super::super::auth_base_url(),
+                flow_id
+            )
+        }
+    }
+
     pub mod jwt {
-        pub const G_GENERATE: &str = "/jwt/generate";
-        pub const G_VERIFY: &str = "/jwt/verify";
+        pub const IG_GENERATE: &str = "/jwt/generate";
+        pub const IG_VERIFY: &str = "/jwt/verify";
     }
 
     pub mod chats {
-        pub const G_LIST: &str = "/chats/list";
-        pub const P_GET: &str = "/chats/get";
-        pub const P_VERIFY_PRIVATE: &str = "/chats/verify_private";
+        pub const IG_LIST: &str = "/chats/list";
+        pub const IP_GET: &str = "/chats/get";
+        pub const IP_VERIFY_PRIVATE: &str = "/chats/verify_private";
     }
 
     pub mod messages {
-        pub const P_LIST: &str = "/messages/list";
-        pub const P_SEND: &str = "/messages/send";
+        pub const IP_LIST: &str = "/messages/list";
+        pub const IP_SEND: &str = "/messages/send";
     }
 
     pub mod users {
-        pub const G_CHECK: &str = "/users/check";
-        pub const G_ME: &str = "/users/me";
-        pub const P_GET: &str = "/users/get";
-        pub const P_SETUP: &str = "/users/setup";
-        pub const P_LIST: &str = "/users/list";
+        pub const IG_CHECK: &str = "/users/check";
+        pub const IG_ME: &str = "/users/me";
+        pub const IP_GET: &str = "/users/get";
+        pub const IP_SETUP: &str = "/users/setup";
+        pub const IP_LIST: &str = "/users/list";
     }
 }
 
-pub fn server_url(url: &'static str) -> String {
-    format!("{}{}", SERVER_URL, url)
+#[cfg(feature = "client")]
+pub fn auth_base_url() -> String {
+    let url: String = env!("BASE_URL_AUTH").into();
+    url.trim_end_matches('/').into()
+}
+
+#[cfg(not(feature = "client"))]
+pub fn auth_base_url() -> String {
+    dotenv::dotenv().ok();
+
+    let url = match std::env::var("BASE_URL_AUTH") {
+        Ok(url) => url,
+        Err(_) => panic!("BASE_URL_AUTH not present"),
+    };
+
+    url.trim_end_matches('/').into()
+}
+
+#[cfg(feature = "client")]
+pub fn api_base_url() -> String {
+    let url: String = env!("BASE_URL_API").into();
+    url.trim_end_matches('/').into()
+}
+
+#[cfg(not(feature = "client"))]
+pub fn api_base_url() -> String {
+    dotenv::dotenv().ok();
+
+    let url = match std::env::var("BASE_URL_API") {
+        Ok(url) => url,
+        Err(_) => panic!("BASE_URL_AUTH not present"),
+    };
+
+    url.trim_end_matches('/').into()
+}
+
+pub fn on_api_base_url(uri: &'static str) -> String {
+    let uri = uri.trim_start_matches('/');
+    let url = format!("{}/{}", api_base_url(), uri);
+    tracing::info!("API URL: {}", url);
+    url
+}
+
+pub fn on_auth_base_url(uri: &'static str) -> String {
+    tracing::info!("Auth URI: {}", uri);
+    tracing::info!("Auth Base URL: {}", auth_base_url());
+    let uri = uri.trim_start_matches('/');
+    let url = format!("{}/{}", auth_base_url(), uri);
+    tracing::info!("Auth URL: {}", url);
+    url
 }

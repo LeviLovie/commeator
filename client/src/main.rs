@@ -13,7 +13,7 @@ enum Route {
     #[route("/")]
     Home,
 
-    #[nest("/auth")]
+    #[nest("/login")]
         #[route("/callback")] AuthCallback,
 
         #[route("/setup")]

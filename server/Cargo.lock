@@ -3075,9 +3075,11 @@ dependencies = [
  "anyhow",
  "chrono",
  "dotenv",
+ "dotenvy",
  "reqwest",
  "serde",
  "serde_json",
+ "tracing",
  "uuid",
 ]
 

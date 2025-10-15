@@ -1,11 +1,11 @@
 use dioxus::prelude::*;
 use serde::Deserialize;
+use utils::config::endpoints::auth::url_login_flow;
 
 use crate::{
     backend::Request,
     components::{CenteredForm, Spinner},
 };
-use utils::config::auth::url_login_flow;
 
 #[derive(Deserialize, Debug, Clone)]
 struct RegistrationFlow {

@@ -13,3 +13,7 @@ script = []
 
 [web.resource.dev]
 script = []
+
+[web.env]
+BASE_URL_AUTH = "https://auth.example.com"
+BASE_URL_API = "https://api.example.com"
