@@ -17,6 +17,7 @@ pub fn Header(title: String) -> Element {
                 class: "flex w-8",
                 IconButton {
                     alt: "back",
+                    ty: "button",
                     icon: asset!("assets/icons/back.svg"),
                     onclick: move |_| {
                         panel_state.right.set(RightPanel::Empty);

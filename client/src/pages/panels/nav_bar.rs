@@ -32,6 +32,7 @@ pub fn NavBar() -> Element {
                     IconButton {
                         alt: "{id}",
                         icon: "{icon}",
+                        ty: "button".to_string(),
                         onclick: move |_| {
                             panel_context.left.set(panel_clone.clone());
                             panel_context.right.set(RightPanel::Empty);

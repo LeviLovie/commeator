@@ -9,6 +9,7 @@ pub enum Messages {
     UUID,
     ChatUUID,
     SenderUUID,
+    SenderNickName,
     Content,
     CreatedAt,
     EditedAt,
@@ -34,6 +35,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(uuid(Messages::ChatUUID).not_null())
                     .col(uuid(Messages::SenderUUID).not_null())
+                    .col(string(Messages::SenderNickName).not_null())
                     .col(text(Messages::Content).not_null())
                     .col(
                         timestamp(Messages::CreatedAt)

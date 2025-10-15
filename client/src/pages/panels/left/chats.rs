@@ -1,10 +1,11 @@
 use dioxus::prelude::*;
 
 use crate::{
-    backend::chats::{list_chats, ChatInfo},
+    backend::list_chats,
     components::Spinner,
-    pages::{panels::api_data::use_api_data, state::jwt, ApiData, Item, PanelContext, RightPanel},
+    pages::{ApiData, Item, PanelContext, RightPanel, panels::api_data::use_api_data},
 };
+use utils::requests::ChatInfo;
 
 #[derive(Clone)]
 pub struct ChatsContext {
@@ -14,14 +15,14 @@ pub struct ChatsContext {
 #[component]
 pub fn Chats() -> Element {
     {
-        let chats = use_api_data(|| async { list_chats(jwt().await).await });
+        let chats = use_api_data(|| async { list_chats().await });
         let context = ChatsContext { chats };
         use_context_provider(|| context.clone());
     }
 
     let context = use_context::<ChatsContext>();
     let chats = context.chats.read();
-    if chats.is_loading() {
+    if chats.is_loading() || chats.as_ref().is_none() {
         return rsx! { Spinner {} };
     }
     let chats = chats.as_ref().unwrap();
@@ -29,13 +30,13 @@ pub fn Chats() -> Element {
     rsx! {
         div {
             { chats.iter().map(|chat| {
-                let id = chat.id;
+                let uuid = chat.uuid;
                 rsx! {
                     Item {
                         button {
                             class: "text-left p-2 w-full h-full hover:bg-gray-300 cursor-pointer",
                             onclick: move |_| {
-                                use_context::<PanelContext>().right.set(RightPanel::Chat(id));
+                                use_context::<PanelContext>().right.set(RightPanel::Chat(uuid));
                             },
 
                             "{chat.name}"

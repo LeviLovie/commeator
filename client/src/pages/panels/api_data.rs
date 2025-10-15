@@ -37,7 +37,7 @@ pub fn use_api_data<T, F, Fut>(load_fn: F) -> Signal<ApiData<T>>
 where
     T: 'static + Clone + PartialEq,
     F: Fn() -> Fut + Copy + 'static,
-    Fut: Future<Output = Result<T, ServerFnError>> + 'static,
+    Fut: Future<Output = Result<T>> + 'static,
 {
     let data = use_signal(|| ApiData::loading());
 

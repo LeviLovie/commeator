@@ -15,6 +15,7 @@ pub struct Claims {
 }
 
 pub async fn verify_jwt(headers: &HeaderMap) -> anyhow::Result<users::Model> {
+    tracing::warn!("Verifying JWT from headers: {:?}", headers);
     let token = headers
         .get("Authorization")
         .and_then(|h| h.to_str().ok())
@@ -69,6 +70,7 @@ pub async fn endpoint_generate(headers: HeaderMap) -> Result<Response, AppError>
         .identity
         .traits
         .email;
+    tracing::info!("Generating JWT for email: {}", email);
 
     let db = db().await;
     let user = Users::find()

@@ -1,11 +1,11 @@
 use dioxus::prelude::*;
-use gloo_net::http::Request;
 use serde::Deserialize;
 
 use crate::{
+    backend::Request,
     components::{CenteredForm, Spinner},
-    config::url_login_flow,
 };
+use utils::config::auth::url_login_flow;
 
 #[derive(Deserialize, Debug, Clone)]
 struct RegistrationFlow {
@@ -40,12 +40,14 @@ pub fn AuthLogIn(flow: String) -> Element {
     let flow = use_resource(move || {
         let flow_id = flow_id.clone();
         async move {
-            let res = Request::get(&url_login_flow(&flow_id))
-                .credentials(web_sys::RequestCredentials::Include)
-                .send()
-                .await?;
-
-            res.json::<RegistrationFlow>().await
+            match Request::get(&url_login_flow(&flow_id))
+                .build()
+                .send_decode::<RegistrationFlow>()
+                .await
+            {
+                Ok(flow) => Some(Ok(flow)),
+                Err(err) => Some(Err(err)),
+            }
         }
     });
 
@@ -53,8 +55,9 @@ pub fn AuthLogIn(flow: String) -> Element {
         CenteredForm {
             match *flow.value().read() {
                 None => rsx! { Spinner {} },
-                Some(Err(_)) => rsx! { Spinner {} },
-                Some(Ok(ref flow)) => render_flow(flow),
+                Some(None) => rsx! { Spinner {} },
+                Some(Some(Err(_))) => rsx! { Spinner {} },
+                Some(Some(Ok(ref flow))) => render_flow(flow),
             }
         }
     }

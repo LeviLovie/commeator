@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::{backend::users::check_user, components::Spinner, Route};
+use crate::{Route, backend::check_user, components::Spinner};
 
 #[component]
 pub fn AuthCallback() -> Element {
@@ -8,12 +8,15 @@ pub fn AuthCallback() -> Element {
         spawn(async move {
             match check_user().await {
                 Ok(exists) if exists => {
+                    info!("User exists, navigating to home");
                     navigator().replace(Route::Home);
                 }
                 Ok(_) => {
+                    info!("User does not exist, navigating to profile setup");
                     navigator().replace(Route::AuthProfileSetup);
                 }
-                Err(_) => {
+                Err(e) => {
+                    error!("Error checking user existence: {}", e);
                     navigator().replace(Route::Home);
                 }
             }

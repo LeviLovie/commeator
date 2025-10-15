@@ -26,7 +26,7 @@ pub struct GetChatResponse(pub ChatInfo);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct VerifyPrivateChatRequest {
-    pub with_user: String,
+    pub with_user: Uuid,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -36,15 +36,14 @@ pub struct VerifyPrivateChatResponse(pub Uuid);
 pub struct MessageInfo {
     pub uuid: Uuid,
     pub sender_uuid: Uuid,
+    pub sender_nickname: String,
     pub content: String,
     pub created_at: NaiveDateTime,
     pub edited_at: Option<NaiveDateTime>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct ListMessagesRequest {
-    pub chat_uuid: Uuid,
-}
+pub struct ListMessagesRequest(pub Uuid);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ListMessagesResponse(pub Vec<MessageInfo>);
@@ -65,6 +64,9 @@ pub struct UserInfo {
     pub username: String,
     pub nickname: String,
 }
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct CheckUserResponse(pub bool);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GetUserRequest(pub Uuid);

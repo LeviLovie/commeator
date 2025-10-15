@@ -1,33 +1,43 @@
 use dioxus::prelude::*;
+use utils::requests::UserInfo;
+use uuid::Uuid;
 
 use crate::{
-    backend::{chats::verify_private_chat, users::{get_user, UserInfo}}, components::{Avatar, Spinner}, pages::{panels::right::header::Header, state::jwt, LeftPanel, PanelContext, RightPanel}
+    backend::{get_user, verify_private_chat},
+    components::{Avatar, Spinner},
+    pages::{LeftPanel, PanelContext, RightPanel, panels::right::header::Header},
 };
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct ProfileState {
-    username: String,
+    uuid: Option<Uuid>,
     user: Option<UserInfo>,
 }
 
 #[component]
-pub fn Profile(username: String) -> Element {
+pub fn Profile(uuid: Uuid) -> Element {
     let mut state = use_signal(|| ProfileState {
-        username: String::new(),
+        uuid: None,
         user: None,
     });
 
     use_effect({
-        if state.read().username != username {
+        let update = if let Some(current_uuid) = state.read().uuid {
+            current_uuid != uuid
+        } else {
+            true
+        };
+
+        if update {
             spawn(async move {
-                let user = match get_user(jwt().await, username.clone()).await {
+                let user = match get_user(uuid).await {
                     Ok(user) => Some(user),
                     Err(err) => {
                         error!("Failed to fetch profile: {}", err);
                         None
                     }
                 };
-                state.write().username = username.clone();
+                state.write().uuid = Some(uuid);
                 state.write().user = user;
             });
         }
@@ -70,9 +80,9 @@ pub fn Profile(username: String) -> Element {
                 button {
                     class: "text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2",
                     onclick: move |_| {
-                        let username = user.username.clone();
+                        let user_uuid = user.uuid;
                         spawn(async move {
-                            match verify_private_chat(jwt().await, username).await {
+                            match verify_private_chat(user_uuid).await {
                                 Ok(chat_id) => {
                                     let mut context = use_context::<PanelContext>();
                                     context.left.set(LeftPanel::Chats);

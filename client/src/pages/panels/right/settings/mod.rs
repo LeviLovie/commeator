@@ -4,7 +4,7 @@ pub use account::SettingsAccount;
 
 use dioxus::prelude::*;
 
-use crate::pages::{panels::right::header::Header, Empty, PanelContext};
+use crate::pages::{Empty, PanelContext, panels::right::header::Header};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SettingsPage {

@@ -15,9 +15,10 @@ pub use verify_kratos::verify_kratos_cookie;
 pub use error::AppError;
 
 use axum::{
-    routing::{get, post}, Router
+    http::{header::{AUTHORIZATION, CONTENT_TYPE, COOKIE}, Method}, routing::{get, post}, Router
 };
 use tokio::net::TcpListener;
+use tower_http::cors::{CorsLayer};
 
 use utils::config::endpoints;
 
@@ -47,6 +48,7 @@ async fn main() {
         .route(endpoints::messages::P_SEND, post(messages::send_message));
 
     app = app
+        .route(endpoints::users::G_CHECK, get(users::check_user))
         .route(endpoints::users::G_ME, get(users::get_me))
         .route(endpoints::users::P_GET, post(users::get_user))
         .route(endpoints::users::P_SETUP, post(users::setup_user))
@@ -57,6 +59,24 @@ async fn main() {
         tracing::warn!("Debug mode is enabled. The /debug/user endpoint is available.");
         app = app.route("/debug/user", post(users::debug_user));
     }
+
+    let cors = CorsLayer::new()
+        .allow_origin("http://localhost:8000".parse::<axum::http::HeaderValue>().unwrap())
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
+        .allow_headers([
+            CONTENT_TYPE,
+            AUTHORIZATION,
+            COOKIE,
+        ])
+        .allow_credentials(true);
+
+    app = app.layer(cors);
 
     let listener = TcpListener::bind("0.0.0.0:3000").await.unwrap();
     tracing::info!("Starting server");

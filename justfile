@@ -1,5 +1,8 @@
-serve:
-    @cd web && dx serve --web --port=3000
+web:
+    cd client && dx serve --web --port=8000
+
+server:
+    cd server && cargo run
 
 neocurl:
     cd server/neocurl && \

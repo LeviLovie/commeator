@@ -12,7 +12,7 @@ pub async fn list_messages(headers: HeaderMap, Json(body): Json<ListMessagesRequ
     let db = db().await;
 
     let _: chat_members::Model = ChatMembers::find()
-        .filter(chat_members::Column::ChatUuid.eq(body.chat_uuid))
+        .filter(chat_members::Column::ChatUuid.eq(body.0))
         .filter(chat_members::Column::UserUuid.eq(user.uuid))
         .one(db)
         .await
@@ -20,7 +20,7 @@ pub async fn list_messages(headers: HeaderMap, Json(body): Json<ListMessagesRequ
         .ok_or_else(|| anyhow!("User is not a member of this chat"))?;
 
     let message_models: Vec<messages::Model> = Messages::find()
-        .filter(messages::Column::ChatUuid.eq(body.chat_uuid))
+        .filter(messages::Column::ChatUuid.eq(body.0))
         .filter(messages::Column::Deleted.eq(false))
         .all(db)
         .await
@@ -31,6 +31,7 @@ pub async fn list_messages(headers: HeaderMap, Json(body): Json<ListMessagesRequ
         .map(|msg| MessageInfo {
             uuid: msg.uuid,
             sender_uuid: msg.sender_uuid,
+            sender_nickname: msg.sender_nick_name,
             content: msg.content,
             created_at: msg.created_at,
             edited_at: msg.edited_at,
@@ -56,6 +57,7 @@ pub async fn send_message(headers: HeaderMap, Json(body): Json<SendMessageReques
     let new_message = messages::ActiveModel {
         chat_uuid: Set(body.chat_uuid),
         sender_uuid: Set(user.uuid),
+        sender_nick_name: Set(user.nickname.clone()),
         content: Set(body.content.clone()),
         deleted: Set(false),
         ..Default::default()

@@ -1,10 +1,11 @@
 use dioxus::prelude::*;
 
 use crate::{
-    backend::{users::{list_users_exclude_me, UserInfo}},
+    backend::list_users,
     components::{Avatar, Spinner},
-    pages::{panels::api_data::use_api_data, state::jwt, ApiData, Item, PanelContext, RightPanel},
+    pages::{ApiData, Item, PanelContext, RightPanel, panels::api_data::use_api_data},
 };
+use utils::requests::UserInfo;
 
 #[derive(Clone)]
 pub struct UsersContext {
@@ -14,7 +15,7 @@ pub struct UsersContext {
 #[component]
 pub fn Users() -> Element {
     {
-        let users = use_api_data(|| async { list_users_exclude_me(jwt().await).await });
+        let users = use_api_data(|| async { list_users(true).await });
         let context = UsersContext { users };
         use_context_provider(|| context.clone());
     }
@@ -29,13 +30,13 @@ pub fn Users() -> Element {
     rsx! {
         div {
             { users.iter().map(|user| {
-                let username = user.username.clone();
+                let user_uuid = user.uuid;
                 rsx! {
                     Item {
                         div {
                             class: "flex flex-row text-left p-2 w-full h-full hover:bg-gray-300 cursor-pointer",
                             onclick: move |_| {
-                                use_context::<PanelContext>().right.set(RightPanel::Profile(username.clone()));
+                                use_context::<PanelContext>().right.set(RightPanel::Profile(user_uuid));
                             },
 
                             div {

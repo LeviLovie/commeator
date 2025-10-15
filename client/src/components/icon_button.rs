@@ -6,6 +6,7 @@ pub struct IconButtonProps {
     pub icon: String,
     #[props(default)]
     pub onclick: Option<EventHandler<MouseEvent>>,
+    pub ty: String,
 }
 
 #[component]
@@ -14,6 +15,7 @@ pub fn IconButton(props: IconButtonProps) -> Element {
 
     rsx! {
         button {
+            r#type: "{props.ty}",
             key: "{props.alt}",
             class: "flex flex-col items-center transition transform duration-300 hover:scale-110 hover:bg-gray-200 p-2 rounded",
             onclick: move |e| {

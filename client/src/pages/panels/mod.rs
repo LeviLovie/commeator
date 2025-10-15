@@ -10,10 +10,8 @@ pub use right::*;
 
 use dioxus::prelude::*;
 
-use crate::{
-    backend::users::{get_my_user, UserInfo},
-    pages::{panels::api_data::use_api_data, state::jwt},
-};
+use crate::{backend::my_user, pages::panels::api_data::use_api_data};
+use utils::requests::UserInfo;
 
 #[derive(Clone)]
 #[allow(dead_code)]
@@ -36,10 +34,15 @@ pub fn Panels() -> Element {
 
     let left = use_signal(|| LeftPanel::Chats);
     let right = use_signal(|| RightPanel::Empty);
-    let user = use_api_data(|| async { get_my_user(jwt().await).await });
+    let user = use_api_data(|| async { my_user().await });
     let settings_page = use_signal(|| SettingsPage::Empty);
 
-    let context = PanelContext { left, right, user, settings_page };
+    let context = PanelContext {
+        left,
+        right,
+        user,
+        settings_page,
+    };
 
     use_context_provider(|| context.clone());
 
@@ -85,7 +88,7 @@ pub fn Panels() -> Element {
                     rsx! {
                         div {
                             class: "flex-1 relative h-full",
-                            
+
                             div {
                                 class: "bg-gray-100 border-gray-300 flex flex-col md:flex",
                                 LeftPanelWrapper {}

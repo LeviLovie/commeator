@@ -5,7 +5,7 @@ use sea_orm::{ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnectio
 use anyhow::{anyhow, Context};
 
 use crate::{db, schema::*, verify_jwt, verify_kratos_cookie, AppError};
-use utils::requests::{GetUserRequest, GetUserResponse, ListUsersRequest, ListUsersResponse, SetupUserRequest, SetupUserResponse, UserInfo};
+use utils::requests::{CheckUserResponse, GetUserRequest, GetUserResponse, ListUsersRequest, ListUsersResponse, SetupUserRequest, SetupUserResponse, UserInfo};
 
 #[cfg(debug_assertions)]
 pub async fn debug_user(Json(body): Json<UserInfo>) -> Result<Response, AppError> {
@@ -29,6 +29,22 @@ pub async fn debug_user(Json(body): Json<UserInfo>) -> Result<Response, AppError
         .context("Failed to generate JWT")?;
 
     let response = utils::requests::GenerateJwtResponse(jwt);
+    Ok(Json(response).into_response())
+}
+
+pub async fn check_user(headers: HeaderMap) -> Result<Response, AppError> {
+    let email = verify_kratos_cookie(&headers)
+        .await?.identity.traits.email;
+    let db = db().await;
+
+    let user_model = Users::find()
+        .filter(users::Column::Email.eq(email))
+        .one(db)
+        .await
+        .context("Failed to query user from database")?;
+
+    let response = CheckUserResponse(user_model.is_some());
+    tracing::info!("Check user: {:?}", response);
     Ok(Json(response).into_response())
 }
 
@@ -82,18 +98,22 @@ async fn username_taken(
 }
 
 pub async fn setup_user(headers: HeaderMap, Json(body): Json<SetupUserRequest>) -> Result<Response, AppError> {
+    tracing::info!("Setting up user: {:?}", body);
     let email = verify_kratos_cookie(&headers)
         .await
         .context("Failed to verify Kratos cookie")?
         .identity.traits.email;
     let db = db().await;
 
-    let _: users::Model = Users::find()
+    let user_model: Option<users::Model> = Users::find()
         .filter(users::Column::Email.eq(&email))
         .one(db)
         .await
-        .context("Failed to query user from database")?
-        .ok_or_else(|| anyhow!("User not found"))?;
+        .context("Failed to query user from database")?;
+
+    if user_model.is_some() {
+        return Err(anyhow!("User with this email already exists").into());
+    }
 
     if body.username.len() < 3 || body.username.len() > 20 {
         return Err(anyhow!("Username must be between 3 and 20 characters").into());

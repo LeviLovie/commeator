@@ -1,47 +1,53 @@
 use dioxus::prelude::*;
+use uuid::Uuid;
+use std::rc::Rc;
 
 use crate::{
-    backend::{
-        chats::{get_chat, ChatInfo},
-        messages::{list_messages, send_message, MessageInfo},
-    },
-    components::Spinner,
-    pages::{panels::right::header::Header, state::jwt},
+    backend::{get_chat, list_messages, send_message},
+    components::{IconButton, Spinner},
+    pages::panels::right::header::Header,
 };
+use utils::requests::{ChatInfo, MessageInfo};
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct ChatState {
-    id: i32,
+    uuid: Option<Uuid>,
     chat: Option<ChatInfo>,
     messages: Option<Vec<MessageInfo>>,
 }
 
 #[component]
-pub fn Chat(chat_id: i32) -> Element {
+pub fn Chat(uuid: Uuid) -> Element {
     let mut state = use_signal(|| ChatState {
-        id: 0,
+        uuid: None,
         chat: None,
         messages: None,
     });
 
     use_effect({
-        if state.read().id != chat_id {
+        let update = if let Some(current_uuid) = state.read().uuid {
+            current_uuid != uuid
+        } else {
+            true
+        };
+
+        if update {
             spawn(async move {
-                let chat = match get_chat(jwt().await, chat_id).await {
+                let chat = match get_chat(uuid).await {
                     Ok(chat) => Some(chat),
                     Err(err) => {
                         error!("Failed to fetch chat: {}", err);
                         None
                     }
                 };
-                let messages = match list_messages(jwt().await, chat_id).await {
+                let messages = match list_messages(uuid).await {
                     Ok(msgs) => Some(msgs),
                     Err(err) => {
                         error!("Failed to fetch messages: {}", err);
                         None
                     }
                 };
-                state.write().id = chat_id;
+                state.write().uuid = Some(uuid);
                 state.write().chat = chat;
                 state.write().messages = messages;
             });
@@ -51,9 +57,7 @@ pub fn Chat(chat_id: i32) -> Element {
     });
 
     let state = state.read();
-    if state.chat.is_none()
-        || state.messages.is_none()
-    {
+    if state.chat.is_none() || state.messages.is_none() {
         return rsx! { Spinner {} };
     }
 
@@ -61,13 +65,28 @@ pub fn Chat(chat_id: i32) -> Element {
     let messages = state.messages.as_ref().unwrap();
 
     rsx! {
-        Header { title: "{chat.name}" }
+        div {
+            class: "flex flex-col h-screen",
 
-        { messages.iter().map(|message| rsx! {
-            MessageItem { message: message.clone() }
-        }) }
+            div {
+                class: "flex-none",
+                Header { title: "{chat.name}" }
+            }
 
-        MessageBox { chat_id: chat.id }
+            div {
+                class: "flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50",
+                id: "message-container",
+
+                { messages.iter().map(|message| {
+                    rsx! { MessageItem { message: message.clone() } }
+                }) }
+            }
+
+            div {
+                class: "border-t border-gray-300 bg-white p-2 sticky bottom-0",
+                MessageBox { uuid }
+            }
+        }
     }
 }
 
@@ -79,7 +98,7 @@ pub fn MessageItem(message: MessageInfo) -> Element {
 
             div {
                 class: "font-bold",
-                "User ID: {message.sender_id}"
+                "User ID: {message.sender_nickname}"
             }
 
             div {
@@ -88,6 +107,7 @@ pub fn MessageItem(message: MessageInfo) -> Element {
 
             div {
                 class: "text-sm text-gray-500",
+
                 "Sent at: {message.created_at}"
             }
         }
@@ -95,43 +115,39 @@ pub fn MessageItem(message: MessageInfo) -> Element {
 }
 
 #[component]
-pub fn MessageBox(chat_id: i32) -> Element {
+pub fn MessageBox(uuid: Uuid) -> Element {
+    let mut message = use_signal(String::new);
+
     rsx! {
         form {
-            class: "flex-1 flex-row p-2 border-t border-gray-300",
+            class: "flex gap-2",
             onsubmit: move |e| {
                 e.prevent_default();
-                let data = e.data();
 
-                let message = match data.get_first("message") {
-                    Some(v) => match v {
-                        FormValue::Text(s) if !s.trim().is_empty() => s.trim().to_string(),
-                        _ => {
-                            return;
-                        }
-                    },
-                    None => {
-                        return;
-                    }
-                };
+                let msg = message.read().trim().to_string();
+                if msg.is_empty() {
+                    return;
+                }
 
                 spawn(async move {
-                    if let Err(e) = send_message(jwt().await, chat_id, message).await {
+                    if let Err(e) = send_message(uuid, msg).await {
                         error!("Failed to send message: {}", e);
                     }
+                    message.set(String::new());
                 });
             },
 
-            textarea {
-                class: "w-full p-2 border border-gray-300 rounded",
-                name: "message",
-                placeholder: "Type your message..."
-            }
+            input {
+                class: "flex-1 p-2 border border-gray-300 rounded",
+                placeholder: "Type your message...",
+                value: "{message}",
+                oninput: move |e| {e.prevent_default(); message.set(e.value().clone())},
+            },
 
-            button {
-                class: "mt-2 p-2 bg-blue-500 text-white rounded",
-                type: "submit",
-                "Send"
+            IconButton {
+                alt: "Send".to_string(),
+                icon: asset!("/assets/icons/forward.svg"),
+                ty: "submit".to_string(),
             }
         }
     }

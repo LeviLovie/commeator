@@ -1,9 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::{
-    backend::users::{setup_user, user_by_username},
-    components::CenteredForm,
-};
+use crate::{backend::setup_user, components::CenteredForm};
 
 #[component]
 pub fn AuthProfileSetup() -> Element {
@@ -28,15 +25,6 @@ pub fn AuthProfileSetup() -> Element {
                     return;
                 }
             };
-
-            if user_by_username(username.clone())
-                .await
-                .unwrap_or(None)
-                .is_some()
-            {
-                error.set(Some("Username is already taken".to_string()));
-                return;
-            }
 
             let nickname = match data.get_first("nickname") {
                 Some(v) => match v {

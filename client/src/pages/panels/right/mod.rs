@@ -10,15 +10,16 @@ pub use profile::Profile;
 pub use settings::*;
 
 use dioxus::prelude::*;
+use uuid::Uuid;
 
 use crate::pages::PanelContext;
 
 #[derive(Debug, Clone)]
 pub enum RightPanel {
     Empty,
-    Chat(i32),
+    Chat(Uuid),
     Settings,
-    Profile(String),
+    Profile(Uuid),
 }
 
 #[component]
@@ -28,8 +29,8 @@ pub fn RightPanelWrapper() -> Element {
 
     match panel.clone() {
         RightPanel::Empty => rsx! { Empty {} },
-        RightPanel::Chat(chat_id) => rsx! { Chat { chat_id } },
+        RightPanel::Chat(uuid) => rsx! { Chat { uuid } },
         RightPanel::Settings => rsx! { Settings {} },
-        RightPanel::Profile(username) => rsx! { Profile { username } },
+        RightPanel::Profile(uuid) => rsx! { Profile { uuid } },
     }
 }

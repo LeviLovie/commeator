@@ -75,7 +75,7 @@ pub async fn verify_private_chat(headers: HeaderMap, Json(body): Json<VerifyPriv
     let db = db().await;
 
     let other_user: users::Model = Users::find()
-        .filter(users::Column::Username.eq(body.with_user))
+        .filter(users::Column::Uuid.eq(body.with_user))
         .one(db)
         .await
         .context("Failed to query user from database")?

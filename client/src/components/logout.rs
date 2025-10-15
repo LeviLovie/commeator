@@ -1,8 +1,8 @@
 use dioxus::prelude::*;
-use gloo_net::http::Request;
 use serde::Deserialize;
 
-use crate::config::URL_LOGOUT;
+use crate::backend::Request;
+use utils::config::auth::URL_LOGOUT;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct LogOutResponse {
@@ -22,23 +22,12 @@ pub fn LogOut() -> Element {
 
 pub async fn logout() {
     match Request::get(URL_LOGOUT)
-        .credentials(web_sys::RequestCredentials::Include)
-        .send()
+        .build()
+        .send_decode::<LogOutResponse>()
         .await
     {
-        Ok(response) if response.ok() => match response.json::<LogOutResponse>().await {
-            Ok(response) => {
-                navigator().replace(response.logout_url);
-            }
-            Err(e) => {
-                error!("Error parsing logout response: {}", e);
-            }
-        },
         Ok(response) => {
-            error!(
-                "Received non-OK response during logout: {}",
-                response.status()
-            );
+            navigator().replace(response.logout_url);
         }
         Err(e) => {
             error!("Error during logout request: {}", e);

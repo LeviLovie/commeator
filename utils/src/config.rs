@@ -11,6 +11,8 @@ pub mod auth {
     }
 }
 
+pub const SERVER_URL: &str = "http://localhost:3000";
+
 #[cfg(feature = "server")]
 pub mod server {
     pub const DATABASE_URL: &str = "postgresql://messenger@localhost/messenger";
@@ -43,9 +45,14 @@ pub mod endpoints {
     }
 
     pub mod users {
+        pub const G_CHECK: &str = "/users/check";
         pub const G_ME: &str = "/users/me";
         pub const P_GET: &str = "/users/get";
         pub const P_SETUP: &str = "/users/setup";
         pub const P_LIST: &str = "/users/list";
     }
+}
+
+pub fn server_url(url: &'static str) -> String {
+    format!("{}{}", SERVER_URL, url)
 }
