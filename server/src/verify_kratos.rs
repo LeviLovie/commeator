@@ -1,8 +1,7 @@
 use anyhow::{Context, Result};
-use dioxus::prelude::*;
-use dioxus_fullstack::HeaderMap;
+use axum::http::HeaderMap;
 
-use crate::auth::{get_user_from_cookie, KratosUserData};
+use utils::auth::{server::get_user_from_cookie, KratosUserData};
 
 pub async fn verify_kratos_cookie(headers: &HeaderMap) -> Result<KratosUserData> {
     let cookie = headers

@@ -15,8 +15,7 @@ enum Route {
     Home,
 
     #[nest("/auth")]
-        #[route("/callback")]
-        AuthCallback,
+        #[route("/callback")] AuthCallback,
 
         #[route("/setup")]
         AuthProfileSetup,
@@ -28,14 +27,18 @@ enum Route {
         AuthError { id: String },
 }
 
+#[cfg(not(feature = "server"))]
 fn main() {
-    let level = if cfg!(debug_assertions) {
-        Level::INFO
-    } else {
-        Level::WARN
-    };
-    dioxus::logger::init(level).expect("failed to initialize logger");
+    dioxus::logger::initialize_default();
+    dioxus_web::launch::launch(
+        || dioxus_web::launch::launch(root, contexts, cfg),
+        Vec::new(),
+        Vec::new(),
+    );
+}
 
+#[cfg(feature = "server")]
+fn main() {
     dioxus::launch(App);
 }
 

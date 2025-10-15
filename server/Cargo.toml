@@ -1,0 +1,18 @@
+[package]
+name = "server"
+version = "0.1.0"
+authors = ["Levi Lovie <leviiloviee@gmail.com>"]
+edition = "2021"
+
+[dependencies]
+utils = { path = "../utils", features = ["server"] }
+anyhow = "1.0.100"
+chrono = { version = "0.4.42", features = ["serde"] }
+jsonwebtoken = { version = "10.0.0", features = ["aws_lc_rs"] }
+sea-orm = { version = "1.1.17", features = ["runtime-tokio-rustls", "sqlx-postgres"] }
+serde = { version = "1.0.225", features = ["derive"] }
+async-once-cell = "0.5.4"
+axum = "0.8.6"
+tokio = { version = "1.48.0", features = ["full"] }
+tracing = "0.1.41"
+tracing-subscriber = "0.3.20"

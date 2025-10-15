@@ -12,8 +12,25 @@ services:
     image: oryd/kratos:v1.3.1
     command: serve --dev --config /etc/config/kratos/kratos.yml
     volumes:
-      - ./kratos/kratos.yml:/etc/config/kratos/kratos.yml
-      - ./kratos/identity.schema.json:/etc/config/kratos/identity.schema.json
+      - ./config/kratos/kratos.yml:/etc/config/kratos/kratos.yml
+      - ./config/kratos/identity.schema.json:/etc/config/kratos/identity.schema.json
     ports:
       - "4433:4433"
       - "4434:4434"
+
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: messenger
+      POSTGRES_DB: messenger
+    volumes:
+      - ./config/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # web:
+  #   build: ./dioxus
+  #   ports:
+  #     - "8080:80"
+  #   depends_on:
+  #     - hydra
+  #     - kratos
+  #     - postgres

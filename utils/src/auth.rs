@@ -1,9 +1,4 @@
-use anyhow::{bail, Context, Result};
-use dioxus::prelude::*;
-use gloo_net::http::Request;
 use serde::Deserialize;
-
-use crate::config::{URL_LOGIN, URL_WHOAMI};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct KratosUserData {
@@ -20,47 +15,62 @@ pub struct Traits {
     pub email: String,
 }
 
-async fn try_get_user() -> Result<KratosUserData> {
-    match Request::get(URL_WHOAMI)
-        .credentials(web_sys::RequestCredentials::Include)
-        .send()
-        .await
-        .context("Failed to send request to Kratos")?
-    {
-        r if r.ok() => r
-            .json::<KratosUserData>()
+#[cfg(feature = "client")]
+pub mod client {
+    use dioxus::prelude::*;
+    use gloo_net::http::Request;
+    
+    use super::*;
+
+    async fn try_get_user() -> Result<KratosUserData> {
+        match Request::get(URL_WHOAMI)
+            .credentials(web_sys::RequestCredentials::Include)
+            .send()
             .await
-            .context("Failed to parse user info from Kratos"),
-        r => Err(anyhow::anyhow!("Received non-OK response: {}", r.status())),
+            .context("Failed to send request to Kratos")?
+        {
+            r if r.ok() => r
+                .json::<KratosUserData>()
+                .await
+                .context("Failed to parse user info from Kratos"),
+            r => Err(anyhow::anyhow!("Received non-OK response: {}", r.status())),
+        }
+    }
+
+    pub async fn get_user() -> Option<KratosUserData> {
+        match try_get_user().await {
+            Ok(user) => Some(user),
+            Err(e) => {
+                error!("Error fetching user info: {}", e);
+                navigator().replace(URL_LOGIN);
+                None
+            }
+        }
     }
 }
 
 #[cfg(feature = "server")]
-pub async fn get_user_from_cookie(cookie: &str) -> Result<KratosUserData> {
-    let client = dioxus_fullstack::reqwest::Client::new();
-    let res = client
-        .get(URL_WHOAMI)
-        .header("Cookie", cookie)
-        .send()
-        .await?;
+pub mod server {
+    use anyhow::{bail, Context, Result};
+    use reqwest::Client;
 
-    if !res.status().is_success() {
-        bail!("Failed to verify session with Kratos: {}", res.status());
-    }
+    use crate::config::auth::URL_WHOAMI;
+    use super::*;
 
-    res.json::<KratosUserData>()
-        .await
-        .context("Failed to parse user info from Kratos")
-}
+    pub async fn get_user_from_cookie(cookie: &str) -> Result<KratosUserData> {
+        let res = Client::new()
+            .get(URL_WHOAMI)
+            .header("Cookie", cookie)
+            .send()
+            .await?;
 
-pub async fn get_user() -> Option<KratosUserData> {
-    match try_get_user().await {
-        Ok(user) => Some(user),
-        Err(e) => {
-            error!("Error fetching user info: {}", e);
-            navigator().replace(URL_LOGIN);
-            None
+        if !res.status().is_success() {
+            bail!("Failed to verify session with Kratos: {}", res.status());
         }
+
+        res.json::<KratosUserData>()
+            .await
+            .context("Failed to parse user info from Kratos")
     }
 }
 
@@ -70,6 +80,7 @@ macro_rules! verify_user_jwt {
         let user = use_resource(|| async { $crate::auth::get_user().await });
         if user().is_none() || user().as_ref().unwrap().is_none() {
             return rsx! { $crate::components::Spinner {} };
+
         }
         let user = user().as_ref().unwrap().as_ref().unwrap().clone();
 

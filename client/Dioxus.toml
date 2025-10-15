@@ -1,10 +1,11 @@
 [application]
 
 [web.app]
-title = "messenger"
+title = "Commeator"
 
 [web.watcher]
 index_on_404 = true
+output = "dist"
 
 [web.resource]
 style = []

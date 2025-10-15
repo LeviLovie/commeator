@@ -3,7 +3,7 @@ use sea_orm_migration::{prelude::*, schema::*};
 #[derive(DeriveIden)]
 pub enum Users {
     Table,
-    Id,
+    UUID,
     Email,
     Username,
     Nickname,
@@ -22,11 +22,10 @@ impl MigrationTrait for Migration {
                     .table(Users::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(Users::Id)
-                            .integer()
+                        uuid(Users::UUID)
                             .not_null()
-                            .auto_increment()
                             .primary_key()
+                            .default(Expr::cust("uuid_generate_v4()"))
                     )
                     .col(text(Users::Email).not_null().unique_key())
                     .col(text(Users::Username).not_null())

@@ -1,17 +1,17 @@
 serve:
-    @dx serve --web --port=3000
+    @cd web && dx serve --web --port=3000
 
-up:
+m_up:
     sea-orm-cli migrate up
 
-down:
+m_down:
     sea-orm-cli migrate down
 
-fresh:
+m_fresh:
     sea-orm-cli migrate fresh
 
-migration NAME:
+m_new NAME:
     sea-orm-cli migrate generate {{ NAME }}
 
-generate:
-    sea-orm-cli generate entity -o src/backend/entities
+m_generate:
+    sea-orm-cli generate entity -o server/src/entities
