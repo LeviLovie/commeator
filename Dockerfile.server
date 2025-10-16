@@ -24,7 +24,6 @@ FROM debian:trixie-slim
 
 COPY --from=builder /app/server/target/release/server /usr/local/bin/server
 COPY --from=builder /app/migration/target/release/migration /usr/local/bin/migration
-COPY config/server/env /etc/server/.env
 
 ENV RUST_LOG=debug
 

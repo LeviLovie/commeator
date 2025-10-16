@@ -27,7 +27,7 @@ spec:
 
       containers:
         - name: server
-          image: commeator-server:latest
+          image: ghcr.io/levilovie/server:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 3000
