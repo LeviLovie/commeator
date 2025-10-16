@@ -1,21 +1,38 @@
+pub fn env_value(key: &str) -> String {
+    if let Err(e) = dotenvy::from_filename(".env") {
+        panic!("Failed to read .env: {}", e);
+    }
+
+    match std::env::var(key) {
+        Ok(value) => value,
+        Err(_) => panic!("{} not present", key),
+    }
+}
+
 #[cfg(feature = "server")]
 pub mod server {
-    pub fn db_url() -> String {
-        dotenv::dotenv().ok();
+    use super::env_value;
 
-        match std::env::var("DATABASE_URL") {
-            Ok(url) => url,
-            Err(_) => panic!("DATABASE_URL not present"),
-        }
+    pub fn db_url() -> String {
+        env_value("DATABASE_URL").trim_end_matches('/').to_string()
+    }
+
+    pub fn centrifugo_url() -> String {
+        env_value("BASE_URL_CENTRIFUGO")
+            .trim_end_matches('/')
+            .to_string()
+    }
+
+    pub fn centrifugo_key() -> String {
+        env_value("CENTRIFUGO_KEY").to_string()
     }
 
     pub fn jwt_secret() -> Vec<u8> {
-        dotenv::dotenv().ok();
+        env_value("JWT_SECRET").as_bytes().to_vec()
+    }
 
-        match std::env::var("JWT_SECRET") {
-            Ok(secret) => secret.into_bytes(),
-            Err(_) => panic!("JWT_SECRET not present"),
-        }
+    pub fn centrifugo_jwt_secret() -> Vec<u8> {
+        env_value("CENTRIFUGO_JWT_SECRET").as_bytes().to_vec()
     }
 }
 
@@ -31,7 +48,6 @@ pub mod endpoints {
                 super::super::auth_base_url(),
                 flow_id
             );
-            tracing::warn!("Login Flow URL: {}", url);
             url
         }
     }
@@ -39,6 +55,7 @@ pub mod endpoints {
     pub mod jwt {
         pub const IG_GENERATE: &str = "/jwt/generate";
         pub const IG_VERIFY: &str = "/jwt/verify";
+        pub const IG_GENERATE_CENTRIFUGO: &str = "/jwt/centrifugo";
     }
 
     pub mod chats {
@@ -69,14 +86,7 @@ pub fn auth_base_url() -> String {
 
 #[cfg(not(feature = "client"))]
 pub fn auth_base_url() -> String {
-    dotenv::dotenv().ok();
-
-    let url = match std::env::var("BASE_URL_AUTH") {
-        Ok(url) => url,
-        Err(_) => panic!("BASE_URL_AUTH not present"),
-    };
-
-    url.trim_end_matches('/').into()
+    env_value("BASE_URL_AUTH").trim_end_matches('/').to_string()
 }
 
 #[cfg(feature = "client")]
@@ -87,28 +97,17 @@ pub fn api_base_url() -> String {
 
 #[cfg(not(feature = "client"))]
 pub fn api_base_url() -> String {
-    dotenv::dotenv().ok();
-
-    let url = match std::env::var("BASE_URL_API") {
-        Ok(url) => url,
-        Err(_) => panic!("BASE_URL_AUTH not present"),
-    };
-
-    url.trim_end_matches('/').into()
+    env_value("BASE_URL_API").trim_end_matches('/').to_string()
 }
 
 pub fn on_api_base_url(uri: &'static str) -> String {
     let uri = uri.trim_start_matches('/');
     let url = format!("{}/{}", api_base_url(), uri);
-    tracing::info!("API URL: {}", url);
     url
 }
 
 pub fn on_auth_base_url(uri: &'static str) -> String {
-    tracing::info!("Auth URI: {}", uri);
-    tracing::info!("Auth Base URL: {}", auth_base_url());
     let uri = uri.trim_start_matches('/');
     let url = format!("{}/{}", auth_base_url(), uri);
-    tracing::info!("Auth URL: {}", url);
     url
 }

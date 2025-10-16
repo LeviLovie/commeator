@@ -16,6 +16,11 @@ FROM chef AS builder
 
 COPY --from=planner /app/client/recipe.json client/recipe.json
 COPY utils ./utils
+
+RUN rm utils/.env
+
+COPY config/utils/env utils/.env
+
 RUN cd client && \
     cargo chef cook --release --recipe-path recipe.json
 COPY client ./client
@@ -23,6 +28,7 @@ COPY client ./client
 RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 
 RUN cargo binstall dioxus-cli@0.7.0-rc.1 --locked -y
+
 ENV PATH="/.cargo/bin:$PATH"
 
 COPY config/web/env client/.env

@@ -1,13 +1,20 @@
+use anyhow::{anyhow, Context};
 use axum::{
-    http::HeaderMap, response::{IntoResponse, Response}, Json, 
+    http::HeaderMap,
+    response::{IntoResponse, Response},
+    Json,
 };
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter};
-use anyhow::{anyhow, Context};
 
-use crate::{db, schema::*, verify_jwt, AppError};
-use utils::requests::{ListMessagesRequest, ListMessagesResponse, MessageInfo, SendMessageRequest, SendMessageResponse};
+use crate::{conn::publish, db, schema::*, verify_jwt, AppError};
+use utils::requests::{
+    ListMessagesRequest, ListMessagesResponse, MessageInfo, SendMessageRequest, SendMessageResponse,
+};
 
-pub async fn list_messages(headers: HeaderMap, Json(body): Json<ListMessagesRequest>) -> Result<Response, AppError> {
+pub async fn list_messages(
+    headers: HeaderMap,
+    Json(body): Json<ListMessagesRequest>,
+) -> Result<Response, AppError> {
     let user = verify_jwt(&headers).await?;
     let db = db().await;
 
@@ -42,7 +49,10 @@ pub async fn list_messages(headers: HeaderMap, Json(body): Json<ListMessagesRequ
     Ok(Json(response).into_response())
 }
 
-pub async fn send_message(headers: HeaderMap, Json(body): Json<SendMessageRequest>) -> Result<Response, AppError> {
+pub async fn send_message(
+    headers: HeaderMap,
+    Json(body): Json<SendMessageRequest>,
+) -> Result<Response, AppError> {
     let user = verify_jwt(&headers).await?;
     let db = db().await;
 
@@ -63,10 +73,23 @@ pub async fn send_message(headers: HeaderMap, Json(body): Json<SendMessageReques
         ..Default::default()
     };
 
-    new_message
+    let inserted_message = new_message
         .insert(db)
         .await
         .context("Failed to insert new message into database")?;
+
+    let message = MessageInfo {
+        uuid: inserted_message.uuid,
+        sender_uuid: user.uuid,
+        sender_nickname: user.nickname.clone(),
+        content: inserted_message.content,
+        created_at: inserted_message.created_at,
+        edited_at: None,
+    };
+    let serialized_message = serde_json::to_value(&message)
+        .map_err(|e| anyhow!("Failed to serialize message info: {}", e))?;
+
+    publish(&format!("chat_{}", body.chat_uuid), serialized_message).await?;
 
     let response = SendMessageResponse {};
     Ok(Json(response).into_response())

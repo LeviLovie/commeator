@@ -8,11 +8,9 @@ pub fn AuthCallback() -> Element {
         spawn(async move {
             match check_user().await {
                 Ok(exists) if exists => {
-                    info!("User exists, navigating to home");
                     navigator().replace(Route::Home);
                 }
                 Ok(_) => {
-                    info!("User does not exist, navigating to profile setup");
                     navigator().replace(Route::AuthProfileSetup);
                 }
                 Err(e) => {

@@ -3,7 +3,10 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct GenerateJwtResponse(pub String);
+pub struct GenerateJwtResponse {
+    pub jwt: String,
+    pub expires_at: NaiveDateTime,
+}
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct VerifyJwtResponse(pub bool);

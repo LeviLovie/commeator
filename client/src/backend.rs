@@ -1,7 +1,11 @@
 use anyhow::{Result, anyhow, bail};
+use chrono::{NaiveDateTime, Utc};
 use dioxus::prelude::*;
 use serde::de::DeserializeOwned;
 use std::sync::{LazyLock, Mutex};
+use uuid::Uuid;
+
+use crate::components::logout;
 use utils::{
     auth::KratosUserData,
     config::{
@@ -9,11 +13,46 @@ use utils::{
     },
     requests::*,
 };
-use uuid::Uuid;
 
-use crate::components::logout;
+static JWT: LazyLock<Mutex<Option<(String, NaiveDateTime)>>> = LazyLock::new(|| Mutex::new(None));
+pub static CENTRIFUGO_JWT: LazyLock<Mutex<Option<(String, NaiveDateTime)>>> = LazyLock::new(|| Mutex::new(None));
 
-static JWT: LazyLock<Mutex<Option<String>>> = LazyLock::new(|| Mutex::new(None));
+async fn regenerate_centrifugo_jwt() {
+    match generate_centrifugo_jwt().await {
+        Ok(token) => {
+            *CENTRIFUGO_JWT.lock().unwrap() = Some(token);
+        }
+        Err(e) => {
+            if e.to_string().contains("User not found") {
+                logout().await;
+            }
+            error!("Failed to request centrifugo JWT: {}", e);
+        }
+    }
+}
+
+pub async fn get_centrifugo_jwt() -> Option<String> {
+    {
+        let jwt = {
+            let guard = CENTRIFUGO_JWT.lock().unwrap();
+            guard.clone()
+        };
+        match jwt {
+            None => regenerate_centrifugo_jwt().await,
+            Some((_, expires_at)) if expires_at <= Utc::now().naive_utc() => {
+                regenerate_centrifugo_jwt().await
+            }
+            _ => {}
+        }
+    };
+
+    if let Some(token) = CENTRIFUGO_JWT.lock().unwrap().as_ref() {
+        Some(token.0.clone())
+    } else {
+        warn!("Centrifugo JWT is still None after regeneration attempt");
+        None
+    }
+}
 
 pub enum Method {
     Get,
@@ -126,30 +165,46 @@ impl RequestBuilder {
         self.add_header("Content-Type", "application/json")
     }
 
-    pub async fn add_jwt(self) -> Self {
-        if JWT.lock().unwrap().is_none() {
-            match generate_jwt().await {
-                Ok(token) => {
-                    *JWT.lock().unwrap() = Some(token);
+    async fn regenerate_jwt() {
+        match generate_jwt().await {
+            Ok(token) => {
+                *JWT.lock().unwrap() = Some(token);
+            }
+            Err(e) => {
+                if e.to_string().contains("User not found") {
+                    logout().await;
                 }
-                Err(e) => {
-                    if e.to_string().contains("User not found") {
-                        logout().await;
-                    }
-                    error!("Failed to request JWT: {}", e);
-                }
+                error!("Failed to request JWT: {}", e);
             }
         }
+    }
+
+    pub async fn add_jwt(self) -> Self {
+        {
+            let jwt = {
+                let guard = JWT.lock().unwrap();
+                guard.clone()
+            };
+            match jwt {
+                None => Self::regenerate_jwt().await,
+                Some((_, expires_at)) if expires_at <= Utc::now().naive_utc() => {
+                    Self::regenerate_jwt().await
+                }
+                _ => {}
+            }
+        };
 
         if let Some(token) = JWT.lock().unwrap().as_ref() {
             let mut headers = self.headers.clone();
-            headers.push(("Authorization".to_string(), format!("Bearer {}", token)));
+            headers.push(("Authorization".to_string(), format!("Bearer {}", token.0)));
             return Self {
                 url: self.url,
                 method: self.method,
                 body: self.body,
                 headers,
             };
+        } else {
+            warn!("JWT is still None after regeneration attempt");
         }
 
         self
@@ -165,23 +220,22 @@ impl RequestBuilder {
     }
 }
 
-pub async fn generate_jwt() -> Result<String> {
+pub async fn generate_jwt() -> Result<(String, NaiveDateTime)> {
     let response = Request::get(&on_api_base_url(jwt::IG_GENERATE))
         .build()
         .send_decode::<GenerateJwtResponse>()
         .await?;
-    Ok(response.0)
+    Ok((response.jwt, response.expires_at))
 }
 
-#[allow(dead_code)]
-pub async fn verify_jwt() -> Result<bool> {
-    let response = Request::get(&on_api_base_url(jwt::IG_VERIFY))
+pub async fn generate_centrifugo_jwt() -> Result<(String, NaiveDateTime)> {
+    let response = Request::get(&on_api_base_url(jwt::IG_GENERATE_CENTRIFUGO))
         .add_jwt()
         .await
         .build()
-        .send_decode::<VerifyJwtResponse>()
+        .send_decode::<GenerateJwtResponse>()
         .await?;
-    Ok(response.0)
+    Ok((response.jwt, response.expires_at))
 }
 
 pub async fn list_chats() -> Result<Vec<ChatInfo>> {

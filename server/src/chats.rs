@@ -1,11 +1,19 @@
-use axum::{
-    http::HeaderMap, response::{IntoResponse, Response}, Json, 
-};
-use sea_orm::{sea_query::Query, ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, JoinType, QueryFilter, QuerySelect, RelationTrait};
 use anyhow::{anyhow, Context};
+use axum::{
+    http::HeaderMap,
+    response::{IntoResponse, Response},
+    Json,
+};
+use sea_orm::{
+    sea_query::Query, ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, JoinType,
+    QueryFilter, QuerySelect, RelationTrait,
+};
 
 use crate::{db, schema::*, verify_jwt, AppError};
-use utils::requests::{ChatInfo, GetChatRequest, GetChatResponse, ListChatsResponse, VerifyPrivateChatRequest, VerifyPrivateChatResponse};
+use utils::requests::{
+    ChatInfo, GetChatRequest, GetChatResponse, ListChatsResponse, VerifyPrivateChatRequest,
+    VerifyPrivateChatResponse,
+};
 
 pub async fn list_chats(headers: HeaderMap) -> Result<Response, AppError> {
     let user = verify_jwt(&headers).await?;
@@ -36,7 +44,10 @@ pub async fn list_chats(headers: HeaderMap) -> Result<Response, AppError> {
     Ok(Json(response).into_response())
 }
 
-pub async fn get_chat(headers: HeaderMap, Json(body): Json<GetChatRequest>) -> Result<Response, AppError> {
+pub async fn get_chat(
+    headers: HeaderMap,
+    Json(body): Json<GetChatRequest>,
+) -> Result<Response, AppError> {
     let user = verify_jwt(&headers).await?;
     let db = db().await;
 
@@ -70,7 +81,10 @@ pub async fn get_chat(headers: HeaderMap, Json(body): Json<GetChatRequest>) -> R
     Ok(Json(response).into_response())
 }
 
-pub async fn verify_private_chat(headers: HeaderMap, Json(body): Json<VerifyPrivateChatRequest>) -> Result<Response, AppError> {
+pub async fn verify_private_chat(
+    headers: HeaderMap,
+    Json(body): Json<VerifyPrivateChatRequest>,
+) -> Result<Response, AppError> {
     let user = verify_jwt(&headers).await?;
     let db = db().await;
 
@@ -95,8 +109,8 @@ pub async fn verify_private_chat(headers: HeaderMap, Json(body): Json<VerifyPriv
                     .column(chat_members::Column::ChatUuid)
                     .from(chat_members::Entity)
                     .and_where(chat_members::Column::UserUuid.eq(other_user.uuid))
-                    .to_owned()
-            )
+                    .to_owned(),
+            ),
         )
         .one(db)
         .await

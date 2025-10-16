@@ -2,9 +2,7 @@ use dioxus::prelude::*;
 use uuid::Uuid;
 
 use crate::{
-    backend::{get_chat, list_messages, send_message},
-    components::{IconButton, Spinner},
-    pages::panels::right::header::Header,
+    backend::{get_chat, list_messages, send_message}, centrifugo::connect_to_centrifugo_channel, components::{IconButton, Spinner}, pages::panels::right::header::Header
 };
 use utils::requests::{ChatInfo, MessageInfo};
 
@@ -21,6 +19,23 @@ pub fn Chat(uuid: Uuid) -> Element {
         uuid: None,
         chat: None,
         messages: None,
+    });
+
+    spawn(async move {
+        connect_to_centrifugo_channel(
+            format!("chat_{}", uuid).as_str(),
+            move |json| {
+                let message = serde_json::from_value::<MessageInfo>(json.clone());
+                if let Ok(message) = message && state.read().messages.is_some() {
+                    if state.read().messages.as_ref().unwrap().iter().any(|m| m.uuid == message.uuid) {
+                        return;
+                    }
+                    state.write().messages.as_mut().unwrap().push(message);
+                } else {
+                    error!("Failed to parse incoming message: {:?}", json);
+                }
+            },
+        ).await;
     });
 
     use_effect({

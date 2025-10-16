@@ -1,17 +1,42 @@
 services:
+  postgres:
+    image: postgres:18
+    env_file: ./config/psql/env
+    volumes:
+      - ./config/psql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5433:5432"
+
+  hydra-migrate:
+    image: oryd/hydra:v2.3.0
+    command: migrate -c /etc/config/hydra/hydra.yml sql up -e --yes
+    environment:
+      - DSN=postgres://hydra:hydra@postgres/hydra
+      - LOG_LEVEL=warn
+    pull_policy: missing
+    volumes:
+      - ./config/hydra/hydra.yml:/etc/config/hydra/hydra.yml
+    restart: on-failure
+    depends_on:
+      - postgres
+
   hydra:
     image: oryd/hydra:v2.2
-    command: serve all --dev
+    command: serve -c /etc/config/hydra/hydra.yml all
     ports:
       - "4444:4444"
-      - "4445:4445"
     environment:
-      - DSN=memory
-      - LOG_LEVEL=error
+      - DSN=postgres://hydra:hydra@postgres/hydra
+      - LOG_LEVEL=warn
+    depends_on:
+      - postgres
+      - hydra-migrate
+    volumes:
+      - ./config/hydra/hydra.yml:/etc/config/hydra/hydra.yml
 
   kratos:
     image: oryd/kratos:v1.3.1
-    command: serve --dev --config /etc/config/kratos/kratos.yml
+    command: serve --config /etc/config/kratos/kratos.yml
     volumes:
       - ./config/kratos/kratos.yml:/etc/config/kratos/kratos.yml
       - ./config/kratos/identity.schema.json:/etc/config/kratos/identity.schema.json
@@ -19,15 +44,17 @@ services:
       - "4433:4433"
       - "4434:4434"
     environment:
-      - LOG_LEVEL=error
+      - LOG_LEVEL=warning
 
-  postgres:
-    image: postgres:18
-    env_file: ./config/psql/env
+  centrifugo:
+    image: centrifugo/centrifugo:v6.4
+    command: centrifugo --config /centrifugo/config.yaml
     volumes:
-      - ./config/psql/init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "5555:5432"
+      - ./config/centrifugo/config.yaml:/centrifugo/config.yaml
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
 
   server:
     build:
@@ -35,7 +62,7 @@ services:
       dockerfile: Dockerfile.server
     env_file: ./config/server/env
     ports:
-      - "3000:3000"
+      - "3300:3000"
     depends_on:
       - hydra
       - kratos

@@ -1,4 +1,5 @@
 mod backend;
+mod centrifugo;
 mod components;
 mod pages;
 mod verify_user_jwt;

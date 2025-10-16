@@ -3,7 +3,6 @@ WORKDIR /app
 
 COPY utils ./utils
 COPY server/Cargo.toml server/Cargo.lock ./server/
-COPY config/server/env ./server/.env
 
 RUN mkdir server/src && \
     echo "fn main() {println!(\"CODE WAS NOT REPLACED\");}" > server/src/dummy_main.rs && \
@@ -21,7 +20,10 @@ RUN cargo build --release --manifest-path=./server/Cargo.toml
 FROM debian:trixie-slim
 
 COPY --from=builder /app/server/target/release/server /usr/local/bin/server
+COPY config/server/env /etc/server/.env
 
 ENV RUST_LOG=debug
+
+WORKDIR /etc/server
 
 ENTRYPOINT ["/usr/local/bin/server"]

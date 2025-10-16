@@ -1,24 +1,29 @@
 mod chats;
-mod db;
+mod conn;
+mod error;
 mod jwt;
 mod messages;
 mod users;
 mod verify_kratos;
-mod error;
 
 #[allow(unused_imports)]
 mod entities;
 
-pub use db::db;
+pub use conn::db;
+pub use error::AppError;
 pub use jwt::verify_jwt;
 pub use verify_kratos::verify_kratos_cookie;
-pub use error::AppError;
 
 use axum::{
-    http::{header::{AUTHORIZATION, CONTENT_TYPE, COOKIE}, Method}, routing::{get, post}, Router
+    http::{
+        header::{AUTHORIZATION, CONTENT_TYPE, COOKIE},
+        Method,
+    },
+    routing::{get, post},
+    Router,
 };
 use tokio::net::TcpListener;
-use tower_http::cors::{CorsLayer};
+use tower_http::cors::CorsLayer;
 
 use utils::config::endpoints;
 
@@ -36,12 +41,16 @@ async fn main() {
 
     app = app
         .route(endpoints::jwt::IG_GENERATE, get(jwt::endpoint_generate))
-        .route(endpoints::jwt::IG_VERIFY, get(jwt::endpoint_verify));
+        .route(endpoints::jwt::IG_VERIFY, get(jwt::endpoint_verify))
+        .route(endpoints::jwt::IG_GENERATE_CENTRIFUGO, get(jwt::endpoint_generate_centrifugo));
 
     app = app
         .route(endpoints::chats::IG_LIST, get(chats::list_chats))
         .route(endpoints::chats::IP_GET, post(chats::get_chat))
-        .route(endpoints::chats::IP_VERIFY_PRIVATE, post(chats::verify_private_chat));
+        .route(
+            endpoints::chats::IP_VERIFY_PRIVATE,
+            post(chats::verify_private_chat),
+        );
 
     app = app
         .route(endpoints::messages::IP_LIST, post(messages::list_messages))
@@ -61,7 +70,11 @@ async fn main() {
     }
 
     let cors = CorsLayer::new()
-        .allow_origin("http://localhost:8000".parse::<axum::http::HeaderValue>().unwrap())
+        .allow_origin(
+            "http://localhost:8000"
+                .parse::<axum::http::HeaderValue>()
+                .unwrap(),
+        )
         .allow_methods([
             Method::GET,
             Method::POST,
@@ -69,11 +82,7 @@ async fn main() {
             Method::DELETE,
             Method::OPTIONS,
         ])
-        .allow_headers([
-            CONTENT_TYPE,
-            AUTHORIZATION,
-            COOKIE,
-        ])
+        .allow_headers([CONTENT_TYPE, AUTHORIZATION, COOKIE])
         .allow_credentials(true);
 
     app = app.layer(cors);

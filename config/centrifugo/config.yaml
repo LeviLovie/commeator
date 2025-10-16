@@ -1,0 +1,25 @@
+client:
+  token:
+    hmac_secret_key: "SUPER_DUPER_SECRET_KEY"
+  allowed_origins:
+  - http://localhost:8000
+  - http://localhost:3000
+  - http://server:3000
+
+http_api:
+  key: "SUPER_DUPER_SECRET_KEY"
+
+http_server:
+  port: 9000
+
+admin:
+  enabled: true
+  password: "<YOUR-ADMIN-PASSWORD-HERE>"
+  secret: "SUPER_DUPER_SECRET_KEY"
+
+websocket:
+  disabled: false
+  compression: false
+
+engine:
+  type: memory

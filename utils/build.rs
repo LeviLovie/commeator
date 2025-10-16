@@ -8,9 +8,4 @@ fn main() {
 
     println!("cargo:rustc-env=BASE_URL_API={}", base_url_api);
     println!("cargo:rustc-env=BASE_URL_AUTH={}", base_url_auth);
-
-    println!(
-        "cargo:warning=Embedding BASE_URL_API={} and BASE_URL_AUTH=[hidden]",
-        base_url_api
-    );
 }

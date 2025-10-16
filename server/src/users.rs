@@ -1,20 +1,29 @@
-use axum::{
-    http::HeaderMap, response::{IntoResponse, Response}, Json, 
-};
-use sea_orm::{ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use anyhow::{anyhow, Context};
+use axum::{
+    http::HeaderMap,
+    response::{IntoResponse, Response},
+    Json,
+};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
+};
 
 use crate::{db, schema::*, verify_jwt, verify_kratos_cookie, AppError};
-use utils::requests::{CheckUserResponse, GetUserRequest, GetUserResponse, ListUsersRequest, ListUsersResponse, SetupUserRequest, SetupUserResponse, UserInfo};
+use utils::requests::{
+    CheckUserResponse, GetUserRequest, GetUserResponse, ListUsersRequest, ListUsersResponse,
+    SetupUserRequest, SetupUserResponse, UserInfo,
+};
 
 #[cfg(debug_assertions)]
 pub async fn debug_user(Json(body): Json<UserInfo>) -> Result<Response, AppError> {
-    tracing::info!("Debug user creation: {:?}", body);
     let db = db().await;
-    tracing::info!("Database connection established");
 
     let user_model = users::ActiveModel {
-        email: Set(format!("{}-{}", body.email, sea_orm::prelude::Uuid::new_v4())),
+        email: Set(format!(
+            "{}-{}",
+            body.email,
+            sea_orm::prelude::Uuid::new_v4()
+        )),
         username: Set(body.username),
         nickname: Set(body.nickname),
         ..Default::default()
@@ -24,17 +33,19 @@ pub async fn debug_user(Json(body): Json<UserInfo>) -> Result<Response, AppError
         .await
         .context("Failed to insert new user into database")?;
 
-    let jwt = crate::jwt::generate(user.uuid)
+    let (jwt, expires_at) = crate::jwt::generate(user.uuid)
         .await
         .context("Failed to generate JWT")?;
 
-    let response = utils::requests::GenerateJwtResponse(jwt);
+    let response = utils::requests::GenerateJwtResponse{
+        jwt,
+        expires_at
+    };
     Ok(Json(response).into_response())
 }
 
 pub async fn check_user(headers: HeaderMap) -> Result<Response, AppError> {
-    let email = verify_kratos_cookie(&headers)
-        .await?.identity.traits.email;
+    let email = verify_kratos_cookie(&headers).await?.identity.traits.email;
     let db = db().await;
 
     let user_model = Users::find()
@@ -44,7 +55,6 @@ pub async fn check_user(headers: HeaderMap) -> Result<Response, AppError> {
         .context("Failed to query user from database")?;
 
     let response = CheckUserResponse(user_model.is_some());
-    tracing::info!("Check user: {:?}", response);
     Ok(Json(response).into_response())
 }
 
@@ -62,7 +72,10 @@ pub async fn get_me(headers: HeaderMap) -> Result<Response, AppError> {
     Ok(Json(response).into_response())
 }
 
-pub async fn get_user(headers: HeaderMap, Json(body): Json<GetUserRequest>) -> Result<Response, AppError> {
+pub async fn get_user(
+    headers: HeaderMap,
+    Json(body): Json<GetUserRequest>,
+) -> Result<Response, AppError> {
     let _ = verify_jwt(&headers).await?;
     let db = db().await;
 
@@ -84,10 +97,7 @@ pub async fn get_user(headers: HeaderMap, Json(body): Json<GetUserRequest>) -> R
     Ok(Json(response).into_response())
 }
 
-async fn username_taken(
-    username: &str,
-    db: &'static DatabaseConnection,
-) -> Result<bool, AppError> {
+async fn username_taken(username: &str, db: &'static DatabaseConnection) -> Result<bool, AppError> {
     let user: Option<users::Model> = Users::find()
         .filter(users::Column::Username.eq(username))
         .one(db)
@@ -97,12 +107,16 @@ async fn username_taken(
     Ok(user.is_some())
 }
 
-pub async fn setup_user(headers: HeaderMap, Json(body): Json<SetupUserRequest>) -> Result<Response, AppError> {
-    tracing::info!("Setting up user: {:?}", body);
+pub async fn setup_user(
+    headers: HeaderMap,
+    Json(body): Json<SetupUserRequest>,
+) -> Result<Response, AppError> {
     let email = verify_kratos_cookie(&headers)
         .await
         .context("Failed to verify Kratos cookie")?
-        .identity.traits.email;
+        .identity
+        .traits
+        .email;
     let db = db().await;
 
     let user_model: Option<users::Model> = Users::find()
@@ -121,11 +135,15 @@ pub async fn setup_user(headers: HeaderMap, Json(body): Json<SetupUserRequest>) 
     if body.nickname.len() < 3 || body.nickname.len() > 30 {
         return Err(anyhow!("Nickname must be between 3 and 30 characters").into());
     }
-    if !body.username
+    if !body
+        .username
         .chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.' )
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.')
     {
-        return Err(anyhow!("Username can only contain alphanumeric characterl, underscores, dots, and hyphens").into());
+        return Err(anyhow!(
+            "Username can only contain alphanumeric characterl, underscores, dots, and hyphens"
+        )
+        .into());
     }
     if username_taken(&body.username, db).await? {
         return Err(anyhow!("Username is already taken").into());
@@ -146,7 +164,10 @@ pub async fn setup_user(headers: HeaderMap, Json(body): Json<SetupUserRequest>) 
     Ok(Json(response).into_response())
 }
 
-pub async fn list_users(headers: HeaderMap, Json(body): Json<ListUsersRequest>) -> Result<Response, AppError> {
+pub async fn list_users(
+    headers: HeaderMap,
+    Json(body): Json<ListUsersRequest>,
+) -> Result<Response, AppError> {
     let user = verify_jwt(&headers).await?;
     let db = db().await;
 
