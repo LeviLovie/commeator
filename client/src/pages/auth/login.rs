@@ -40,7 +40,7 @@ pub fn AuthLogIn(flow: String) -> Element {
     let flow = use_resource(move || {
         let flow_id = flow_id.clone();
         async move {
-            match Request::get(&url_login_flow(&flow_id))
+            match Request::get(&url_login_flow(&flow_id).await)
                 .build()
                 .send_decode::<RegistrationFlow>()
                 .await

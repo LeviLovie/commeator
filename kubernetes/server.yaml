@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server
+  labels:
+    app: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: server
+  template:
+    metadata:
+      labels:
+        app: server
+    spec:
+      initContainers:
+        - name: migrate
+          image: commeator-server:latest
+          imagePullPolicy: Never
+          command: ['/usr/local/bin/migration', 'up']
+          envFrom:
+            - configMapRef:
+                name: server-env
+            - secretRef:
+                name: server-env-secret
+
+      containers:
+        - name: server
+          image: commeator-server:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: server-env
+            - secretRef:
+                name: server-env-secret
+
+      volumes:
+        - name: server-env-secret
+          secret:
+            secretName: server-env-secret
+        - name: server-env
+          configMap:
+            name: server-env
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: server
+  labels:
+    app: server
+spec:
+  selector:
+    app: server
+  ports:
+    - name: public
+      port: 3000
+      targetPort: 3000
+  type: ClusterIP
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: server-env
+data:
+  BASE_URL_WSS: ws://centrifugo:9000/
+  BASE_URL_CENTRIFUGO: http://centrifugo:9000/
+  BASE_URL_AUTH: http://kratos:4433/

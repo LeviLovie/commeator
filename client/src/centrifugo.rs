@@ -2,6 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 use gloo_net::websocket::{futures::WebSocket, Message};
 use futures::{SinkExt, StreamExt};
 use dioxus::prelude::*;
+use utils::config::wss_base_url;
 
 use crate::backend::get_centrifugo_jwt;
 
@@ -11,7 +12,7 @@ where
 {
     let token = get_centrifugo_jwt().await.expect("Failed to get Centrifugo JWT");
 
-    let base_url = env!("BASE_URL_WSS").trim_end_matches('/');
+    let base_url = wss_base_url().await;
     let ws_url = format!("{}/connection/websocket?format=json&token={}", base_url, token);
 
     let mut ws = WebSocket::open(&ws_url).expect("Failed to open WebSocket");

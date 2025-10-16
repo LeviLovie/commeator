@@ -3,7 +3,6 @@ name = "commeator"
 version = "0.1.0"
 authors = ["Levi Lovie <leviiloviee@gmail.com>"]
 edition = "2024"
-build = "build.rs"
 
 [dependencies]
 utils = { path = "../utils", features = ["client"] }

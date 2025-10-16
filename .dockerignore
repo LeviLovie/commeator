@@ -1,5 +1,4 @@
 .git/
-migration/
 server/neocurl/
 **/target/
 .DS_Store

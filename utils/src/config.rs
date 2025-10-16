@@ -42,6 +42,17 @@ pub mod endpoints {
         pub const URI_LOGIN: &str = "/self-service/login/browser";
         pub const URI_LOGOUT: &str = "/self-service/logout/browser";
 
+        #[cfg(feature = "client")]
+        pub async fn url_login_flow(flow_id: &str) -> String {
+            let url = format!(
+                "{}/self-service/login/flows?id={}",
+                super::super::auth_base_url().await,
+                flow_id
+            );
+            url
+        }
+        
+        #[cfg(not(feature = "client"))]
         pub fn url_login_flow(flow_id: &str) -> String {
             let url = format!(
                 "{}/self-service/login/flows?id={}",
@@ -79,9 +90,35 @@ pub mod endpoints {
 }
 
 #[cfg(feature = "client")]
-pub fn auth_base_url() -> String {
-    let url: String = env!("BASE_URL_AUTH").into();
-    url.trim_end_matches('/').into()
+#[allow(dead_code)]
+pub async fn web_config() -> serde_json::Value {
+    gloo_net::http::Request::get("/endpoints")
+        .header("Cache-Control", "no-cache")
+        .send()
+        .await
+        .expect("Failed to fetch web config")
+        .json()
+        .await
+        .expect("Failed to parse web config")
+}
+
+#[cfg(feature = "client")]
+pub async fn auth_base_url() -> String {
+    #[cfg(not(debug_assertions))]
+    {
+        let config = web_config().await;
+        config["auth"]
+            .as_str()
+            .expect("auth not found in web config")
+            .trim_end_matches('/')
+            .to_string()
+    }
+    #[cfg(debug_assertions)]
+    {
+        env!("BASE_URL_AUTH")
+            .trim_end_matches('/')
+            .to_string()
+    }
 }
 
 #[cfg(not(feature = "client"))]
@@ -90,9 +127,41 @@ pub fn auth_base_url() -> String {
 }
 
 #[cfg(feature = "client")]
-pub fn api_base_url() -> String {
-    let url: String = env!("BASE_URL_API").into();
-    url.trim_end_matches('/').into()
+pub async fn api_base_url() -> String {
+    #[cfg(not(debug_assertions))]
+    {
+        let config = web_config().await;
+        config["api"]
+            .as_str()
+            .expect("api not found in web config")
+            .trim_end_matches('/')
+            .to_string()
+    }
+    #[cfg(debug_assertions)]
+    {
+        env!("BASE_URL_API")
+            .trim_end_matches('/')
+            .to_string()
+    }
+}
+
+#[cfg(feature = "client")]
+pub async fn wss_base_url() -> String {
+    #[cfg(not(debug_assertions))]
+    {
+        let config = web_config().await;
+        config["wss"]
+            .as_str()
+            .expect("wss not found in web config")
+            .trim_end_matches('/')
+            .to_string()
+    }
+    #[cfg(debug_assertions)]
+    {
+        env!("BASE_URL_WSS")
+            .trim_end_matches('/')
+            .to_string()
+    }
 }
 
 #[cfg(not(feature = "client"))]
@@ -100,12 +169,30 @@ pub fn api_base_url() -> String {
     env_value("BASE_URL_API").trim_end_matches('/').to_string()
 }
 
+#[cfg(feature = "client")]
+pub async fn on_api_base_url(uri: &'static str) -> String {
+    let uri = uri.trim_start_matches('/');
+    let api_base_url = api_base_url().await;
+    let url = format!("{}/{}", api_base_url, uri);
+    url
+}
+
+#[cfg(not(feature = "client"))]
 pub fn on_api_base_url(uri: &'static str) -> String {
     let uri = uri.trim_start_matches('/');
     let url = format!("{}/{}", api_base_url(), uri);
     url
 }
 
+#[cfg(feature = "client")]
+pub async fn on_auth_base_url(uri: &'static str) -> String {
+    let uri = uri.trim_start_matches('/');
+    let auth_base_url = auth_base_url().await;
+    let url = format!("{}/{}", auth_base_url, uri);
+    url
+}
+
+#[cfg(not(feature = "client"))]
 pub fn on_auth_base_url(uri: &'static str) -> String {
     let uri = uri.trim_start_matches('/');
     let url = format!("{}/{}", auth_base_url(), uri);

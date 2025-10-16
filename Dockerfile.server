@@ -3,16 +3,19 @@ WORKDIR /app
 
 COPY utils ./utils
 COPY server/Cargo.toml server/Cargo.lock ./server/
+COPY migration/Cargo.toml migration/Cargo.lock ./migration/
 
-RUN mkdir server/src && \
+RUN mkdir -p server/src && \
     echo "fn main() {println!(\"CODE WAS NOT REPLACED\");}" > server/src/dummy_main.rs && \
     echo "[[bin]]\nname = \"server\"\npath = \"src/dummy_main.rs\"" >> server/Cargo.toml && \
     cargo build --release --manifest-path=./server/Cargo.toml && \
     rm -rf server/src
 
+COPY migration/src ./migration/src
+COPY server/Cargo.toml server/Cargo.lock ./server/
 COPY server/src ./server/src
-COPY server/Cargo.toml ./server/
 
+RUN cargo build --release --manifest-path=./migration/Cargo.toml
 RUN cargo build --release --manifest-path=./server/Cargo.toml
 
 
@@ -20,6 +23,7 @@ RUN cargo build --release --manifest-path=./server/Cargo.toml
 FROM debian:trixie-slim
 
 COPY --from=builder /app/server/target/release/server /usr/local/bin/server
+COPY --from=builder /app/migration/target/release/migration /usr/local/bin/migration
 COPY config/server/env /etc/server/.env
 
 ENV RUST_LOG=debug

@@ -22,7 +22,7 @@ services:
 
   hydra:
     image: oryd/hydra:v2.2
-    command: serve -c /etc/config/hydra/hydra.yml all
+    command: serve all
     ports:
       - "4444:4444"
     environment:
@@ -31,8 +31,6 @@ services:
     depends_on:
       - postgres
       - hydra-migrate
-    volumes:
-      - ./config/hydra/hydra.yml:/etc/config/hydra/hydra.yml
 
   kratos:
     image: oryd/kratos:v1.3.1
@@ -67,6 +65,7 @@ services:
       - hydra
       - kratos
       - postgres
+      - centrifugo
 
   web:
     build:

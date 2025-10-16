@@ -221,7 +221,7 @@ impl RequestBuilder {
 }
 
 pub async fn generate_jwt() -> Result<(String, NaiveDateTime)> {
-    let response = Request::get(&on_api_base_url(jwt::IG_GENERATE))
+    let response = Request::get(&on_api_base_url(jwt::IG_GENERATE).await)
         .build()
         .send_decode::<GenerateJwtResponse>()
         .await?;
@@ -229,7 +229,7 @@ pub async fn generate_jwt() -> Result<(String, NaiveDateTime)> {
 }
 
 pub async fn generate_centrifugo_jwt() -> Result<(String, NaiveDateTime)> {
-    let response = Request::get(&on_api_base_url(jwt::IG_GENERATE_CENTRIFUGO))
+    let response = Request::get(&on_api_base_url(jwt::IG_GENERATE_CENTRIFUGO).await)
         .add_jwt()
         .await
         .build()
@@ -239,7 +239,7 @@ pub async fn generate_centrifugo_jwt() -> Result<(String, NaiveDateTime)> {
 }
 
 pub async fn list_chats() -> Result<Vec<ChatInfo>> {
-    let response = Request::get(&on_api_base_url(chats::IG_LIST))
+    let response = Request::get(&on_api_base_url(chats::IG_LIST).await)
         .add_jwt()
         .await
         .build()
@@ -250,7 +250,7 @@ pub async fn list_chats() -> Result<Vec<ChatInfo>> {
 
 pub async fn get_chat(uuid: Uuid) -> Result<ChatInfo> {
     let request = GetChatRequest(uuid);
-    let response = Request::post(&on_api_base_url(chats::IP_GET))
+    let response = Request::post(&on_api_base_url(chats::IP_GET).await)
         .add_body_from_json(&request)
         .add_jwt()
         .await
@@ -264,7 +264,7 @@ pub async fn verify_private_chat(user_uuid: Uuid) -> Result<Uuid> {
     let request = VerifyPrivateChatRequest {
         with_user: user_uuid,
     };
-    let response = Request::post(&on_api_base_url(chats::IP_VERIFY_PRIVATE))
+    let response = Request::post(&on_api_base_url(chats::IP_VERIFY_PRIVATE).await)
         .add_body_from_json(&request)
         .add_jwt()
         .await
@@ -276,7 +276,7 @@ pub async fn verify_private_chat(user_uuid: Uuid) -> Result<Uuid> {
 
 pub async fn list_messages(chat_uuid: Uuid) -> Result<Vec<MessageInfo>> {
     let request = ListMessagesRequest(chat_uuid);
-    let response = Request::post(&on_api_base_url(messages::IP_LIST))
+    let response = Request::post(&on_api_base_url(messages::IP_LIST).await)
         .add_body_from_json(&request)
         .add_jwt()
         .await
@@ -288,7 +288,7 @@ pub async fn list_messages(chat_uuid: Uuid) -> Result<Vec<MessageInfo>> {
 
 pub async fn send_message(chat_uuid: Uuid, content: String) -> Result<()> {
     let request = SendMessageRequest { chat_uuid, content };
-    let _ = Request::post(&on_api_base_url(messages::IP_SEND))
+    let _ = Request::post(&on_api_base_url(messages::IP_SEND).await)
         .add_body_from_json(&request)
         .add_jwt()
         .await
@@ -299,7 +299,7 @@ pub async fn send_message(chat_uuid: Uuid, content: String) -> Result<()> {
 }
 
 pub async fn check_user() -> Result<bool> {
-    let response = Request::get(&on_api_base_url(users::IG_CHECK))
+    let response = Request::get(&on_api_base_url(users::IG_CHECK).await)
         .build()
         .send_decode::<CheckUserResponse>()
         .await?;
@@ -307,7 +307,7 @@ pub async fn check_user() -> Result<bool> {
 }
 
 pub async fn my_user() -> Result<UserInfo> {
-    let response = Request::get(&on_api_base_url(users::IG_ME))
+    let response = Request::get(&on_api_base_url(users::IG_ME).await)
         .add_jwt()
         .await
         .build()
@@ -318,7 +318,7 @@ pub async fn my_user() -> Result<UserInfo> {
 
 pub async fn get_user(uuid: Uuid) -> Result<UserInfo> {
     let request = GetUserRequest(uuid);
-    let response = Request::post(&on_api_base_url(users::IP_GET))
+    let response = Request::post(&on_api_base_url(users::IP_GET).await)
         .add_body_from_json(&request)
         .add_jwt()
         .await
@@ -330,7 +330,7 @@ pub async fn get_user(uuid: Uuid) -> Result<UserInfo> {
 
 pub async fn setup_user(username: String, nickname: String) -> Result<()> {
     let request = SetupUserRequest { username, nickname };
-    let _ = Request::post(&on_api_base_url(users::IP_SETUP))
+    let _ = Request::post(&on_api_base_url(users::IP_SETUP).await)
         .add_body_from_json(&request)
         .build()
         .send_decode::<SetupUserResponse>()
@@ -340,7 +340,7 @@ pub async fn setup_user(username: String, nickname: String) -> Result<()> {
 
 pub async fn list_users(exclude_self: bool) -> Result<Vec<UserInfo>> {
     let request = ListUsersRequest { exclude_self };
-    let response = Request::post(&on_api_base_url(users::IP_LIST))
+    let response = Request::post(&on_api_base_url(users::IP_LIST).await)
         .add_body_from_json(&request)
         .add_jwt()
         .await
@@ -351,7 +351,7 @@ pub async fn list_users(exclude_self: bool) -> Result<Vec<UserInfo>> {
 }
 
 async fn try_get_kratos_user() -> Result<KratosUserData> {
-    Request::get(&on_auth_base_url(URI_WHOAMI))
+    Request::get(&on_auth_base_url(URI_WHOAMI).await)
         .build()
         .send_decode::<KratosUserData>()
         .await
@@ -362,7 +362,7 @@ pub async fn get_kratos_user() -> Option<KratosUserData> {
         Ok(user) => Some(user),
         Err(e) => {
             error!("Error fetching user info: {}", e);
-            navigator().replace(on_auth_base_url(URI_LOGIN));
+            navigator().replace(on_auth_base_url(URI_LOGIN).await);
             None
         }
     }

@@ -21,7 +21,7 @@ pub fn LogOut() -> Element {
 }
 
 pub async fn logout() {
-    match Request::get(&on_auth_base_url(URI_LOGOUT))
+    match Request::get(&on_auth_base_url(URI_LOGOUT).await)
         .build()
         .send_decode::<LogOutResponse>()
         .await
