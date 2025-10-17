@@ -1,0 +1,5 @@
+{
+  "api": "http:/localhost/api/",
+  "auth": "http:/localhost/auth/",
+  "wss": "ws:/localhost/wss/"
+}

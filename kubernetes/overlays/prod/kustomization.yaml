@@ -1,0 +1,24 @@
+resources:
+  - ../../base
+  - ingress.yaml
+  - secrets.prod.yaml
+
+patchesStrategicMerge:
+  - server.patch.yaml
+  - web.patch.yaml
+
+images:
+  - name: commeator-web
+    newName: ghcr.io/levilovie/web-amd64
+    newTag: latest
+  - name: commeator-server
+    newName: ghcr.io/levilovie/server-amd64
+    newTag: latest
+  - name: commeator-server
+    newName: ghcr.io/levilovie/server-amd64
+    newTag: latest
+
+labels:
+  - includeSelectors: true
+    pairs:
+      env: prod

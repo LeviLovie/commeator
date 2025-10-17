@@ -3,7 +3,7 @@ use sea_orm_migration::{prelude::*, schema::*};
 #[derive(DeriveIden)]
 pub enum Chats {
     Table,
-    Id,
+    UUID,
     Name,
     IsGroup,
     CreatedAt,
@@ -21,11 +21,10 @@ impl MigrationTrait for Migration {
                     .table(Chats::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(Chats::Id)
-                            .integer()
+                        uuid(Chats::UUID)
                             .not_null()
-                            .auto_increment()
-                            .primary_key(),
+                            .primary_key()
+                            .default(Expr::cust("uuid_generate_v4()"))
                     )
                     .col(string(Chats::Name).not_null())
                     .col(boolean(Chats::IsGroup).not_null())

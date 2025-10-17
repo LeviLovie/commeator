@@ -6,8 +6,8 @@ use crate::m20251011_135939_chats::Chats;
 #[derive(DeriveIden)]
 pub enum ChatMembers {
     Table,
-    ChatId,
-    UserId,
+    ChatUUID,
+    UserUUID,
     JoinedAt,
 }
 
@@ -22,8 +22,14 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(ChatMembers::Table)
                     .if_not_exists()
-                    .col(integer(ChatMembers::ChatId).not_null())
-                    .col(integer(ChatMembers::UserId).not_null())
+                    .col(
+                        uuid(ChatMembers::ChatUUID)
+                            .not_null(),
+                    )
+                    .col(
+                        uuid(ChatMembers::UserUUID)
+                            .not_null(),
+                    )
                     .col(
                         timestamp(ChatMembers::JoinedAt)
                             .not_null()
@@ -32,22 +38,22 @@ impl MigrationTrait for Migration {
                     .primary_key(
                         Index::create()
                             .name("pk-chat_members")
-                            .col(ChatMembers::ChatId)
-                            .col(ChatMembers::UserId),
+                            .col(ChatMembers::ChatUUID)
+                            .col(ChatMembers::UserUUID),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-chat_members-chat")
-                            .from(ChatMembers::Table, ChatMembers::ChatId)
-                            .to(Chats::Table, Chats::Id)
+                            .from(ChatMembers::Table, ChatMembers::ChatUUID)
+                            .to(Chats::Table, Chats::UUID)
                             .on_delete(ForeignKeyAction::Cascade)
                             .on_update(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-chat_members-user")
-                            .from(ChatMembers::Table, ChatMembers::UserId)
-                            .to(Users::Table, Users::Id)
+                            .from(ChatMembers::Table, ChatMembers::UserUUID)
+                            .to(Users::Table, Users::UUID)
                             .on_delete(ForeignKeyAction::Cascade)
                             .on_update(ForeignKeyAction::Cascade),
                     )

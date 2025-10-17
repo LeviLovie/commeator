@@ -1,0 +1,41 @@
+[package]
+name = "commeator"
+version = "0.1.0"
+authors = ["Levi Lovie <leviiloviee@gmail.com>"]
+edition = "2024"
+
+[dependencies]
+utils = { path = "../utils", features = ["client"] }
+anyhow = "1.0.100"
+chrono = { version = "0.4.42", features = ["serde"] }
+dioxus = { version = "0.7.0-rc.1", features = ["router"] }
+gloo-net = { version = "0.6.0", features = ["websocket"], optional = true }
+gloo-timers = { version = "0.3.0", features = ["futures"] }
+md5 = "0.8.0"
+serde = { version = "1.0.225", features = ["derive"] }
+serde_json = "1.0.145"
+wasm-bindgen-futures = "0.4.53"
+web-sys = "0.3.80"
+reqwest = { version = "0.12.24", optional = true }
+uuid = { version = "1.18.1", features = ["serde", "v4", "js"] }
+futures = "0.3.31"
+
+[build-dependencies]
+dotenvy = "0.15.7"
+
+[features]
+default = ["dioxus/web"]
+web = ["dioxus/web", "dep:gloo-net"]
+desktop = ["dioxus/desktop", "dep:reqwest"]
+mobile = ["dioxus/mobile", "dep:reqwest"]
+reqwest = ["dep:reqwest", "dep:reqwest"]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"

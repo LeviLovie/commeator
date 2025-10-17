@@ -1,0 +1,4 @@
+.git/
+server/neocurl/
+**/target/
+.DS_Store

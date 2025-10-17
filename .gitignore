@@ -1,4 +1,3 @@
-target/
-kratos/kratos.yml
-.env
-.DS_Store
+**/.DS_Store
+deploy.sh
+compose.prod.yaml
