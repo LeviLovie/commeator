@@ -42,7 +42,7 @@ pub fn Users() -> Element {
                             div {
                                 class: "flex-shrink-0 w-10 h-10 mr-3",
 
-                                Avatar { email: user.email.clone() },
+                                Avatar { email_hash: user.email_hash.clone() },
                             }
 
                             div {

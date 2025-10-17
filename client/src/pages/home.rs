@@ -1,10 +1,14 @@
 use dioxus::prelude::*;
 
-use crate::{pages::Panels, verify_user_jwt};
+use crate::{backend::get_kratos_user, components::Spinner, pages::Panels};
 
 #[component]
 pub fn Home() -> Element {
-    let _user = verify_user_jwt!();
+    let user = use_resource(|| async { get_kratos_user().await });
+    if user().is_none() || user().as_ref().unwrap().is_none() {
+        return rsx! { Spinner {} };
+    }
+    let user = user().as_ref().unwrap().as_ref().unwrap().clone();
 
     rsx! {
         div {

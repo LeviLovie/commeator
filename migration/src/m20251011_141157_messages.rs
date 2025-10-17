@@ -6,10 +6,9 @@ use crate::m20251011_135939_chats::Chats;
 #[derive(DeriveIden)]
 pub enum Messages {
     Table,
-    UUID,
-    ChatUUID,
-    SenderUUID,
-    SenderNickName,
+    Uuid,
+    ChatUuid,
+    SenderUuid,
     Content,
     CreatedAt,
     EditedAt,
@@ -28,14 +27,13 @@ impl MigrationTrait for Migration {
                     .table(Messages::Table)
                     .if_not_exists()
                     .col(
-                        uuid(Messages::UUID)
+                        uuid(Messages::Uuid)
                             .not_null()
                             .primary_key()
                             .default(Expr::cust("uuid_generate_v4()"))
                     )
-                    .col(uuid(Messages::ChatUUID).not_null())
-                    .col(uuid(Messages::SenderUUID).not_null())
-                    .col(string(Messages::SenderNickName).not_null())
+                    .col(uuid(Messages::ChatUuid).not_null())
+                    .col(uuid(Messages::SenderUuid).not_null())
                     .col(text(Messages::Content).not_null())
                     .col(
                         timestamp(Messages::CreatedAt)
@@ -47,16 +45,16 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-messages-chat")
-                            .from(Messages::Table, Messages::ChatUUID)
-                            .to(Chats::Table, Chats::UUID)
+                            .from(Messages::Table, Messages::ChatUuid)
+                            .to(Chats::Table, Chats::Uuid)
                             .on_delete(ForeignKeyAction::Cascade)
                             .on_update(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-messages-sender")
-                            .from(Messages::Table, Messages::SenderUUID)
-                            .to(Users::Table, Users::UUID)
+                            .from(Messages::Table, Messages::SenderUuid)
+                            .to(Users::Table, Users::Uuid)
                     )
                     .to_owned(),
             )

@@ -95,6 +95,7 @@ pub mod endpoints {
         pub const IP_GET: &str = "/users/get";
         pub const IP_SETUP: &str = "/users/setup";
         pub const IP_LIST: &str = "/users/list";
+        pub const IP_CHAT: &str = "/users/chat";
     }
 }
 

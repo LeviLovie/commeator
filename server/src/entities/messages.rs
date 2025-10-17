@@ -9,7 +9,6 @@ pub struct Model {
     pub uuid: Uuid,
     pub chat_uuid: Uuid,
     pub sender_uuid: Uuid,
-    pub sender_nick_name: String,
     #[sea_orm(column_type = "Text")]
     pub content: String,
     pub created_at: DateTime,

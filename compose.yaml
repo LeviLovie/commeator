@@ -24,6 +24,8 @@ services:
     command: centrifugo --config /centrifugo/config.yaml
     volumes:
       - ./config/centrifugo/config.yaml:/centrifugo/config.yaml
+    ports:
+      - "9000:9000"
     ulimits:
       nofile:
         soft: 65535
@@ -37,7 +39,6 @@ services:
     ports:
       - "3300:3000"
     depends_on:
-      - hydra
       - kratos
       - postgres
       - centrifugo
@@ -49,7 +50,6 @@ services:
     ports:
       - "8000:80"
     depends_on:
-      - hydra
       - kratos
       - postgres
       - server

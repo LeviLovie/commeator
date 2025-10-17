@@ -9,6 +9,8 @@ pub struct Model {
     pub uuid: Uuid,
     #[sea_orm(column_type = "Text", unique)]
     pub email: String,
+    #[sea_orm(column_type = "Text", unique)]
+    pub email_hash: String,
     #[sea_orm(column_type = "Text")]
     pub username: String,
     #[sea_orm(column_type = "Text")]

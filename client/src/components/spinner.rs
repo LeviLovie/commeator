@@ -4,10 +4,10 @@ use dioxus::prelude::*;
 pub fn Spinner() -> Element {
     rsx! {
         div {
-            class: "flex items-center justify-center min-h-screen text-blue-500",
+            style: "display: flex; align-items: center; justify-content: center; min-height: 100vh; color: #3b82f6;", // blue-500
 
             img {
-                class: "w-20 h-20",
+                style: "width: 80px; height: 80px;",
                 src: asset!("/assets/spinner.svg")
             }
         }

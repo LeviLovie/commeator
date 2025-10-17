@@ -2,14 +2,16 @@ use dioxus::prelude::*;
 use uuid::Uuid;
 
 use crate::{
-    backend::{get_chat, list_messages, send_message}, centrifugo::connect_to_centrifugo_channel, components::{IconButton, Spinner}, pages::panels::right::header::Header
+    backend::{chat_users, get_chat, list_messages, my_user, send_message}, centrifugo::connect_to_centrifugo_channel, components::{Avatar, IconButton, Spinner}, pages::panels::right::header::Header
 };
-use utils::requests::{ChatInfo, MessageInfo};
+use utils::requests::{ChatInfo, MessageInfo, UserInfo};
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct ChatState {
     uuid: Option<Uuid>,
     chat: Option<ChatInfo>,
+    members: Option<Vec<UserInfo>>,
+    my_user: Option<UserInfo>,
     messages: Option<Vec<MessageInfo>>,
 }
 
@@ -18,6 +20,8 @@ pub fn Chat(uuid: Uuid) -> Element {
     let mut state = use_signal(|| ChatState {
         uuid: None,
         chat: None,
+        members: None,
+        my_user: None,
         messages: None,
     });
 
@@ -54,6 +58,20 @@ pub fn Chat(uuid: Uuid) -> Element {
                         None
                     }
                 };
+                let members = match chat_users(uuid).await {
+                    Ok(users) => Some(users),
+                    Err(err) => {
+                        error!("Failed to fetch chat users: {}", err);
+                        None
+                    }
+                };
+                let my_user = match my_user().await {
+                    Ok(user) => Some(user),
+                    Err(err) => {
+                        error!("Failed to fetch my user: {}", err);
+                        None
+                    }
+                };
                 let messages = match list_messages(uuid).await {
                     Ok(msgs) => Some(msgs),
                     Err(err) => {
@@ -63,6 +81,8 @@ pub fn Chat(uuid: Uuid) -> Element {
                 };
                 state.write().uuid = Some(uuid);
                 state.write().chat = chat;
+                state.write().members = members;
+                state.write().my_user = my_user;
                 state.write().messages = messages;
             });
         }
@@ -92,7 +112,13 @@ pub fn Chat(uuid: Uuid) -> Element {
                 id: "message-container",
 
                 { messages.iter().map(|message| {
-                    rsx! { MessageItem { message: message.clone() } }
+                    let user = state.members.as_ref().unwrap().iter().find(|u| u.uuid == message.sender_uuid).cloned();
+                    let is_me = if let Some(my_user) = &state.my_user {
+                        my_user.uuid == message.sender_uuid
+                    } else {
+                        false
+                    };
+                    rsx! { MessageItem { user, message: message.clone(), is_me } }
                 }) }
             }
 
@@ -105,28 +131,46 @@ pub fn Chat(uuid: Uuid) -> Element {
 }
 
 #[component]
-pub fn MessageItem(message: MessageInfo) -> Element {
+pub fn MessageItem(user: Option<UserInfo>, message: MessageInfo, is_me: bool) -> Element {
+    let container_class = if is_me {
+        "flex justify-end mb-2"
+    } else {
+        "flex justify-start mb-2"
+    };
+
+    let bubble_class = if is_me {
+        "bg-green-200 text-gray-900 rounded-2xl rounded px-4 py-2 max-w-[65%] shadow"
+    } else {
+        "bg-white text-gray-900 rounded-2xl rounded px-4 py-2 max-w-[65%] shadow"
+    };
+
     rsx! {
-        div {
-            class: "p-2 border-b border-gray-300",
+        div { class: "{container_class}",
+            { if !is_me && let Some(ref user) = user {
+                rsx! { MessageAvatar { email_hash: user.email_hash.clone() } }
+            } else { rsx! {} } }
 
-            div {
-                class: "font-bold",
-                "User ID: {message.sender_nickname}"
+            div { class: "{bubble_class}",
+                p { class: "whitespace-pre-wrap break-words text-sm", "{message.content}" }
             }
 
-            div {
-                "{message.content}"
-            }
-
-            div {
-                class: "text-sm text-gray-500",
-
-                "Sent at: {message.created_at}"
-            }
+            { if is_me && let Some(ref user) = user {
+                rsx! { MessageAvatar { email_hash: user.email_hash.clone() } }
+            } else { rsx! {} } }
         }
     }
 }
+
+#[component]
+pub fn MessageAvatar(email_hash: String) -> Element {
+    rsx! {
+        div {
+            class: "flex items-end mr-2 w-9 h-9 ml-2",
+            Avatar { email_hash, }
+        }
+    }
+}
+
 
 #[component]
 pub fn MessageBox(uuid: Uuid) -> Element {

@@ -59,7 +59,7 @@ pub fn Profile(uuid: Uuid) -> Element {
             class: "p-4 w-full flex flex-col items-center",
 
             div {
-                Avatar { email: user.email.clone() },
+                Avatar { email_hash: user.email_hash.clone() },
             }
 
             div {
