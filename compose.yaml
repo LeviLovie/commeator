@@ -7,31 +7,6 @@ services:
     ports:
       - "5433:5432"
 
-  hydra-migrate:
-    image: oryd/hydra:v2.3.0
-    command: migrate -c /etc/config/hydra/hydra.yml sql up -e --yes
-    environment:
-      - DSN=postgres://hydra:hydra@postgres/hydra
-      - LOG_LEVEL=warn
-    pull_policy: missing
-    volumes:
-      - ./config/hydra/hydra.yml:/etc/config/hydra/hydra.yml
-    restart: on-failure
-    depends_on:
-      - postgres
-
-  hydra:
-    image: oryd/hydra:v2.2
-    command: serve all
-    ports:
-      - "4444:4444"
-    environment:
-      - DSN=postgres://hydra:hydra@postgres/hydra
-      - LOG_LEVEL=warn
-    depends_on:
-      - postgres
-      - hydra-migrate
-
   kratos:
     image: oryd/kratos:v1.3.1
     command: serve --config /etc/config/kratos/kratos.yml
@@ -78,3 +53,5 @@ services:
       - kratos
       - postgres
       - server
+    volumes:
+      - ./config/endpoints.json:/usr/share/nginx/html/endpoints.json

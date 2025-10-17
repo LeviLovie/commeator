@@ -40,7 +40,6 @@ FROM nginx:alpine
 
 COPY --from=builder /app/client/target/dx/commeator/release/web/public/ /usr/share/nginx/html/
 COPY config/web/nginx.conf /etc/nginx/conf.d/default.conf
-COPY config/endpoints.json /usr/share/nginx/html/endpoints.json
 
 EXPOSE 80
 

@@ -1,0 +1,9 @@
+resources:
+  - ../../base
+  - load_balancer.yaml
+  - secrets.dev.yaml
+
+labels:
+  - includeSelectors: true
+    pairs:
+      env: dev

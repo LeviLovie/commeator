@@ -1,8 +1,17 @@
+#[cfg(debug_assertions)]
 pub fn env_value(key: &str) -> String {
     if let Err(e) = dotenvy::from_filename(".env") {
         panic!("Failed to read .env: {}", e);
     }
 
+    match std::env::var(key) {
+        Ok(value) => value,
+        Err(_) => panic!("{} not present", key),
+    }
+}
+
+#[cfg(not(debug_assertions))]
+pub fn env_value(key: &str) -> String {
     match std::env::var(key) {
         Ok(value) => value,
         Err(_) => panic!("{} not present", key),

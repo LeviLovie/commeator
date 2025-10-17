@@ -16,24 +16,16 @@ spec:
     spec:
       containers:
         - name: web
-          image: ghcr.io/levilovie/web:latest
+          image: commeator-web:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 80
-
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: web
-  labels:
-    app: web
-spec:
-  selector:
-    app: web
-  ports:
-    - name: public
-      port: 80
-      targetPort: 80
-  type: LoadBalancer
+          volumeMounts:
+            - name: endpoints
+              mountPath: /usr/share/nginx/html/endpoints.json
+              subPath: endpoints.json
+              readOnly: true
+      volumes:
+        - name: endpoints
+          secret:
+            secretName: endpoints
