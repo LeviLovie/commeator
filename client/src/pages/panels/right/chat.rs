@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use uuid::Uuid;
 
 use crate::{
-    backend::{chat_users, get_chat, list_messages, my_user, send_message}, centrifugo::connect_to_centrifugo_channel, components::{Avatar, IconButton, Spinner}, pages::panels::right::header::Header
+    backend::{chat_users, get_chat, list_messages, my_user, send_message}, centrifugo::connect_to_centrifugo_channel, components::{Avatar, IconButton, Spinner}, pages::{panels::right::header::Header, LayoutContext, PanelLayout}
 };
 use utils::requests::{ChatInfo, MessageInfo, UserInfo};
 
@@ -132,29 +132,35 @@ pub fn Chat(uuid: Uuid) -> Element {
 
 #[component]
 pub fn MessageItem(user: Option<UserInfo>, message: MessageInfo, is_me: bool) -> Element {
-    let container_class = if is_me {
+    let layout_signal = use_context::<LayoutContext>().layout;
+    let layout_guard = layout_signal.read();
+    let layout = layout_guard.clone();
+
+    let location_right = is_me && layout == PanelLayout::Mobile;
+
+    let container_class = if location_right {
         "flex justify-end mb-2"
     } else {
         "flex justify-start mb-2"
     };
 
-    let bubble_class = if is_me {
-        "bg-green-200 text-gray-900 rounded-2xl rounded px-4 py-2 max-w-[65%] shadow"
+    let bubble_color = if is_me {
+        "bg-green-200"
     } else {
-        "bg-white text-gray-900 rounded-2xl rounded px-4 py-2 max-w-[65%] shadow"
+        "bg-white"
     };
 
     rsx! {
         div { class: "{container_class}",
-            { if !is_me && let Some(ref user) = user {
+            { if !location_right && let Some(ref user) = user {
                 rsx! { MessageAvatar { email_hash: user.email_hash.clone() } }
             } else { rsx! {} } }
 
-            div { class: "{bubble_class}",
+            div { class: "{bubble_color} text-gray-900 rounded-2xl rounded px-4 py-2 max-w-[65%] shadow",
                 p { class: "whitespace-pre-wrap break-words text-sm", "{message.content}" }
             }
 
-            { if is_me && let Some(ref user) = user {
+            { if location_right && let Some(ref user) = user {
                 rsx! { MessageAvatar { email_hash: user.email_hash.clone() } }
             } else { rsx! {} } }
         }

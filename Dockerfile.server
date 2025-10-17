@@ -1,9 +1,17 @@
-FROM rust:latest AS builder
+FROM rust:latest AS migration-builder
 WORKDIR /app
+
+COPY migration/Cargo.toml migration/Cargo.lock ./migration/
+COPY migration/src ./migration/src
+
+RUN cargo build --release --manifest-path=./migration/Cargo.toml
+
+
+
+FROM rust:latest AS server-builder
 
 COPY utils ./utils
 COPY server/Cargo.toml server/Cargo.lock ./server/
-COPY migration/Cargo.toml migration/Cargo.lock ./migration/
 
 RUN mkdir -p server/src && \
     echo "fn main() {println!(\"CODE WAS NOT REPLACED\");}" > server/src/dummy_main.rs && \
@@ -11,19 +19,17 @@ RUN mkdir -p server/src && \
     cargo build --release --manifest-path=./server/Cargo.toml && \
     rm -rf server/src
 
-COPY migration/src ./migration/src
 COPY server/Cargo.toml server/Cargo.lock ./server/
 COPY server/src ./server/src
 
-RUN cargo build --release --manifest-path=./migration/Cargo.toml
 RUN cargo build --release --manifest-path=./server/Cargo.toml
 
 
 
 FROM debian:trixie-slim
 
-COPY --from=builder /app/server/target/release/server /usr/local/bin/server
-COPY --from=builder /app/migration/target/release/migration /usr/local/bin/migration
+COPY --from=server-builder /app/server/target/release/server /usr/local/bin/server
+COPY --from=migration-builder /app/migration/target/release/migration /usr/local/bin/migration
 
 ENV RUST_LOG=debug
 

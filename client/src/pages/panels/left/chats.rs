@@ -2,8 +2,8 @@ use dioxus::prelude::*;
 
 use crate::{
     backend::list_chats,
-    components::Spinner,
-    pages::{ApiData, Item, PanelContext, RightPanel, panels::api_data::use_api_data},
+    components::{SmallIconButton, Spinner},
+    pages::{panels::api_data::use_api_data, ApiData, Item, PanelContext, RightPanel},
 };
 use utils::requests::ChatInfo;
 
@@ -29,6 +29,24 @@ pub fn Chats() -> Element {
 
     rsx! {
         div {
+            div {
+                class: "flex justify-between p-2",
+
+                p {
+                    class: "text-m p-0",
+                    "Chats"
+                }
+
+                SmallIconButton {
+                    alt: "New group".to_string(),
+                    icon: asset!("/assets/icons/add.svg"),
+                    ty: "button".to_string(),
+                    onclick: move |_| {
+                        use_context::<PanelContext>().right.set(RightPanel::NewGroup);
+                    },
+                }
+            }
+
             { chats.iter().map(|chat| {
                 let uuid = chat.uuid;
                 rsx! {

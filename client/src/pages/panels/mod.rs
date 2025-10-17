@@ -13,8 +13,7 @@ use dioxus::prelude::*;
 use crate::{backend::my_user, pages::panels::api_data::use_api_data};
 use utils::requests::UserInfo;
 
-#[derive(Clone)]
-#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum PanelLayout {
     Desktop,
     Mobile,
@@ -28,9 +27,18 @@ pub struct PanelContext {
     pub settings_page: Signal<SettingsPage>,
 }
 
+#[derive(Clone)]
+pub struct LayoutContext {
+    pub layout: Signal<PanelLayout>,
+}
+
 #[component]
 pub fn Panels() -> Element {
-    let mut layout = use_signal(|| PanelLayout::Desktop);
+    let default_layout = use_signal(|| PanelLayout::Desktop);
+
+    use_context_provider(|| LayoutContext {
+        layout: default_layout,
+    });
 
     let left = use_signal(|| LeftPanel::Chats);
     let right = use_signal(|| RightPanel::Empty);
@@ -47,6 +55,7 @@ pub fn Panels() -> Element {
     use_context_provider(|| context.clone());
 
     use_effect(move || {
+        let mut layout = use_context::<LayoutContext>().layout;
         let width = web_sys::window()
             .unwrap()
             .inner_width()
@@ -59,6 +68,8 @@ pub fn Panels() -> Element {
             PanelLayout::Mobile
         });
     });
+
+    let layout = use_context::<LayoutContext>().layout;
 
     match layout().clone() {
         PanelLayout::Desktop => rsx! {

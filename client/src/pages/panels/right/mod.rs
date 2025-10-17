@@ -1,11 +1,13 @@
 mod chat;
 mod empty;
 mod header;
+mod new_group;
 mod profile;
 mod settings;
 
 pub use chat::Chat;
 pub use empty::Empty;
+pub use new_group::NewGroup;
 pub use profile::Profile;
 pub use settings::*;
 
@@ -18,6 +20,7 @@ use crate::pages::PanelContext;
 pub enum RightPanel {
     Empty,
     Chat(Uuid),
+    NewGroup,
     Settings,
     Profile(Uuid),
 }
@@ -30,6 +33,7 @@ pub fn RightPanelWrapper() -> Element {
     match panel.clone() {
         RightPanel::Empty => rsx! { Empty {} },
         RightPanel::Chat(uuid) => rsx! { Chat { uuid } },
+        RightPanel::NewGroup => rsx! { NewGroup {} },
         RightPanel::Settings => rsx! { Settings {} },
         RightPanel::Profile(uuid) => rsx! { Profile { uuid } },
     }

@@ -11,8 +11,7 @@ use sea_orm::{
 
 use crate::{db, schema::*, verify_jwt, AppError};
 use utils::requests::{
-    ChatInfo, GetChatRequest, GetChatResponse, ListChatsResponse, VerifyPrivateChatRequest,
-    VerifyPrivateChatResponse,
+    ChatInfo, GetChatRequest, GetChatResponse, ListChatsResponse, NewChatResponse, NewGroupRequest, VerifyPrivateChatRequest
 };
 
 pub async fn list_chats(headers: HeaderMap) -> Result<Response, AppError> {
@@ -117,7 +116,7 @@ pub async fn verify_private_chat(
         .context("Failed to query existing private chat from database")?;
 
     if let Some(chat) = existing_chat {
-        let response = VerifyPrivateChatResponse(chat.uuid);
+        let response = NewChatResponse(chat.uuid);
         return Ok(Json(response).into_response());
     }
 
@@ -151,6 +150,47 @@ pub async fn verify_private_chat(
         .await
         .context("Failed to add second user to new chat in database")?;
 
-    let response = VerifyPrivateChatResponse(new_chat.uuid);
+    let response = NewChatResponse(new_chat.uuid);
+    Ok(Json(response).into_response())
+}
+
+pub async fn new_group(
+    headers: HeaderMap,
+    Json(body): Json<NewGroupRequest>,
+) -> Result<Response, AppError> {
+    let _ = verify_jwt(&headers).await?;
+    let db = db().await;
+
+    let new_chat_model = chats::ActiveModel {
+        name: Set(body.title),
+        is_group: Set(true),
+        ..Default::default()
+    };
+    let new_chat = new_chat_model
+        .insert(db)
+        .await
+        .context("Failed to create new chat in database")?;
+
+    for member_uuid in body.members {
+        let member_user: Option<users::Model> = Users::find()
+            .filter(users::Column::Uuid.eq(member_uuid))
+            .one(db)
+            .await
+            .context("Failed to query user from database")?;
+
+        if let Some(member_user) = member_user {
+            let chat_member_model = chat_members::ActiveModel {
+                chat_uuid: Set(new_chat.uuid),
+                user_uuid: Set(member_user.uuid),
+                joined_at: Set(chrono::Utc::now().naive_utc()),
+            };
+            chat_member_model
+                .insert(db)
+                .await
+                .context("Failed to add user to new chat in database")?;
+        }
+    }
+
+    let response = NewChatResponse(new_chat.uuid);
     Ok(Json(response).into_response())
 }
