@@ -50,7 +50,8 @@ async fn main() {
         .route(
             endpoints::chats::IP_VERIFY_PRIVATE,
             post(chats::verify_private_chat),
-        );
+        )
+        .route(endpoints::groups::IP_NEW, post(chats::new_group));
 
     app = app
         .route(endpoints::messages::IP_LIST, post(messages::list_messages))

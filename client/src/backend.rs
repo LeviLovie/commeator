@@ -269,7 +269,22 @@ pub async fn verify_private_chat(user_uuid: Uuid) -> Result<Uuid> {
         .add_jwt()
         .await
         .build()
-        .send_decode::<VerifyPrivateChatResponse>()
+        .send_decode::<NewChatResponse>()
+        .await?;
+    Ok(response.0)
+}
+
+pub async fn new_group(title: String, members: Vec<Uuid>) -> Result<Uuid> {
+    let request = NewGroupRequest {
+        title,
+        members
+    };
+    let response = Request::post(&on_api_base_url(groups::IP_NEW).await)
+        .add_body_from_json(&request)
+        .add_jwt()
+        .await
+        .build()
+        .send_decode::<NewChatResponse>()
         .await?;
     Ok(response.0)
 }

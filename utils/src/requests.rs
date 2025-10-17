@@ -33,7 +33,13 @@ pub struct VerifyPrivateChatRequest {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct VerifyPrivateChatResponse(pub Uuid);
+pub struct NewChatResponse(pub Uuid);
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct NewGroupRequest {
+    pub title: String,
+    pub members: Vec<Uuid>,
+}
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct MessageInfo {

@@ -83,6 +83,10 @@ pub mod endpoints {
         pub const IP_GET: &str = "/chats/get";
         pub const IP_VERIFY_PRIVATE: &str = "/chats/verify_private";
     }
+    
+    pub mod groups {
+        pub const IP_NEW: &str = "/groups/new";
+    }
 
     pub mod messages {
         pub const IP_LIST: &str = "/messages/list";
