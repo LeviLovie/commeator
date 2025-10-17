@@ -24,7 +24,7 @@ compose *args:
 
 # Run only auth, postgres, and centrifugo services in docker compose
 compose_dev *args:
-    docker compose {{ args }} kratos hydra
+    docker compose {{ args }} kratos centrifugo
 
 # Remove rust build artifacts, those can get quite large
 clean:

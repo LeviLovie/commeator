@@ -30,11 +30,6 @@ pub fn SettingsAccount() -> Element {
             div {
                 p {
                     class: "text-s",
-                    "{user.email}"
-                }
-
-                p {
-                    class: "text-s",
                     "{user.nickname} ({user.nickname})"
                 }
 

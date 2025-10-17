@@ -38,7 +38,6 @@ pub async fn list_messages(
         .map(|msg| MessageInfo {
             uuid: msg.uuid,
             sender_uuid: msg.sender_uuid,
-            sender_nickname: msg.sender_nick_name,
             content: msg.content,
             created_at: msg.created_at,
             edited_at: msg.edited_at,
@@ -67,7 +66,6 @@ pub async fn send_message(
     let new_message = messages::ActiveModel {
         chat_uuid: Set(body.chat_uuid),
         sender_uuid: Set(user.uuid),
-        sender_nick_name: Set(user.nickname.clone()),
         content: Set(body.content.clone()),
         deleted: Set(false),
         ..Default::default()
@@ -81,7 +79,6 @@ pub async fn send_message(
     let message = MessageInfo {
         uuid: inserted_message.uuid,
         sender_uuid: user.uuid,
-        sender_nickname: user.nickname.clone(),
         content: inserted_message.content,
         created_at: inserted_message.created_at,
         edited_at: None,

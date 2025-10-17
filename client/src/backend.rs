@@ -5,7 +5,7 @@ use serde::de::DeserializeOwned;
 use std::sync::{LazyLock, Mutex};
 use uuid::Uuid;
 
-use crate::components::logout;
+use crate::{components::logout, Route};
 use utils::{
     auth::KratosUserData,
     config::{
@@ -350,6 +350,18 @@ pub async fn list_users(exclude_self: bool) -> Result<Vec<UserInfo>> {
     Ok(response.0)
 }
 
+pub async fn chat_users(chat_uuid: Uuid) -> Result<Vec<UserInfo>> {
+    let request = ChatUsersRequest(chat_uuid);
+    let response = Request::post(&on_api_base_url(users::IP_CHAT).await)
+        .add_body_from_json(&request)
+        .add_jwt()
+        .await
+        .build()
+        .send_decode::<ListUsersResponse>()
+        .await?;
+    Ok(response.0)
+}
+
 async fn try_get_kratos_user() -> Result<KratosUserData> {
     Request::get(&on_auth_base_url(URI_WHOAMI).await)
         .build()
@@ -361,7 +373,7 @@ pub async fn get_kratos_user() -> Option<KratosUserData> {
     match try_get_kratos_user().await {
         Ok(user) => Some(user),
         Err(e) => {
-            error!("Error fetching user info: {}", e);
+            info!("Error getting Kratos user: {}", e);
             navigator().replace(on_auth_base_url(URI_LOGIN).await);
             None
         }

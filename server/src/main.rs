@@ -61,7 +61,8 @@ async fn main() {
         .route(endpoints::users::IG_ME, get(users::get_me))
         .route(endpoints::users::IP_GET, post(users::get_user))
         .route(endpoints::users::IP_SETUP, post(users::setup_user))
-        .route(endpoints::users::IP_LIST, post(users::list_users));
+        .route(endpoints::users::IP_LIST, post(users::list_users))
+        .route(endpoints::users::IP_CHAT, post(users::chat_users));
 
     #[cfg(debug_assertions)]
     {

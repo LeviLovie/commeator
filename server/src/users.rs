@@ -10,8 +10,7 @@ use sea_orm::{
 
 use crate::{db, schema::*, verify_jwt, verify_kratos_cookie, AppError};
 use utils::requests::{
-    CheckUserResponse, GetUserRequest, GetUserResponse, ListUsersRequest, ListUsersResponse,
-    SetupUserRequest, SetupUserResponse, UserInfo,
+    ChatUsersRequest, CheckUserResponse, GetUserRequest, GetUserResponse, ListUsersRequest, ListUsersResponse, SetupUserRequest, SetupUserResponse, UserInfo
 };
 
 #[cfg(debug_assertions)]
@@ -19,12 +18,8 @@ pub async fn debug_user(Json(body): Json<UserInfo>) -> Result<Response, AppError
     let db = db().await;
 
     let user_model = users::ActiveModel {
-        email: Set(format!(
-            "{}-{}",
-            body.email,
-            sea_orm::prelude::Uuid::new_v4()
-        )),
         username: Set(body.username),
+        email_hash: Set(body.email_hash),
         nickname: Set(body.nickname),
         ..Default::default()
     };
@@ -63,7 +58,7 @@ pub async fn get_me(headers: HeaderMap) -> Result<Response, AppError> {
 
     let user = UserInfo {
         uuid: user_model.uuid,
-        email: user_model.email,
+        email_hash: user_model.email_hash,
         username: user_model.username,
         nickname: user_model.nickname,
     };
@@ -88,7 +83,7 @@ pub async fn get_user(
 
     let user = UserInfo {
         uuid: user_model.uuid,
-        email: user_model.email,
+        email_hash: user_model.email_hash,
         username: user_model.username,
         nickname: user_model.nickname,
     };
@@ -149,8 +144,11 @@ pub async fn setup_user(
         return Err(anyhow!("Username is already taken").into());
     }
 
+    let email_hash = format!("{:x}", md5::compute(&email));
+
     let new_user = users::ActiveModel {
         email: Set(email),
+        email_hash: Set(email_hash),
         username: Set(body.username),
         nickname: Set(body.nickname),
         ..Default::default()
@@ -188,7 +186,47 @@ pub async fn list_users(
         .into_iter()
         .map(|u| UserInfo {
             uuid: u.uuid,
-            email: u.email,
+            email_hash: u.email_hash,
+            username: u.username,
+            nickname: u.nickname,
+        })
+        .collect();
+
+    let response = ListUsersResponse(users);
+    Ok(Json(response).into_response())
+}
+
+pub async fn chat_users(
+    headers: HeaderMap,
+    Json(body): Json<ChatUsersRequest>,
+) -> Result<Response, AppError> {
+    let user = verify_jwt(&headers).await?;
+    let db = db().await;
+
+    let chat_members: Vec<chat_members::Model> = ChatMembers::find()
+        .filter(chat_members::Column::ChatUuid.eq(body.0))
+        .all(db)
+        .await
+        .context("Failed to query chat members from database")?;
+
+    if !chat_members.iter().any(|cm| cm.user_uuid == user.uuid) {
+        return Err(anyhow!("User is not a member of this chat").into());
+    }
+
+    let user_uuids: Vec<sea_orm::prelude::Uuid> =
+        chat_members.into_iter().map(|cm| cm.user_uuid).collect();
+
+    let user_models: Vec<users::Model> = Users::find()
+        .filter(users::Column::Uuid.is_in(user_uuids))
+        .all(db)
+        .await
+        .context("Failed to query users from database")?;
+
+    let users: Vec<UserInfo> = user_models
+        .into_iter()
+        .map(|u| UserInfo {
+            uuid: u.uuid,
+            email_hash: u.email_hash,
             username: u.username,
             nickname: u.nickname,
         })

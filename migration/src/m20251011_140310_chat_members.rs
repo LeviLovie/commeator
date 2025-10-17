@@ -6,8 +6,8 @@ use crate::m20251011_135939_chats::Chats;
 #[derive(DeriveIden)]
 pub enum ChatMembers {
     Table,
-    ChatUUID,
-    UserUUID,
+    ChatUuid,
+    UserUuid,
     JoinedAt,
 }
 
@@ -23,11 +23,11 @@ impl MigrationTrait for Migration {
                     .table(ChatMembers::Table)
                     .if_not_exists()
                     .col(
-                        uuid(ChatMembers::ChatUUID)
+                        uuid(ChatMembers::ChatUuid)
                             .not_null(),
                     )
                     .col(
-                        uuid(ChatMembers::UserUUID)
+                        uuid(ChatMembers::UserUuid)
                             .not_null(),
                     )
                     .col(
@@ -38,22 +38,22 @@ impl MigrationTrait for Migration {
                     .primary_key(
                         Index::create()
                             .name("pk-chat_members")
-                            .col(ChatMembers::ChatUUID)
-                            .col(ChatMembers::UserUUID),
+                            .col(ChatMembers::ChatUuid)
+                            .col(ChatMembers::UserUuid),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-chat_members-chat")
-                            .from(ChatMembers::Table, ChatMembers::ChatUUID)
-                            .to(Chats::Table, Chats::UUID)
+                            .from(ChatMembers::Table, ChatMembers::ChatUuid)
+                            .to(Chats::Table, Chats::Uuid)
                             .on_delete(ForeignKeyAction::Cascade)
                             .on_update(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-chat_members-user")
-                            .from(ChatMembers::Table, ChatMembers::UserUUID)
-                            .to(Users::Table, Users::UUID)
+                            .from(ChatMembers::Table, ChatMembers::UserUuid)
+                            .to(Users::Table, Users::Uuid)
                             .on_delete(ForeignKeyAction::Cascade)
                             .on_update(ForeignKeyAction::Cascade),
                     )

@@ -39,7 +39,6 @@ pub struct VerifyPrivateChatResponse(pub Uuid);
 pub struct MessageInfo {
     pub uuid: Uuid,
     pub sender_uuid: Uuid,
-    pub sender_nickname: String,
     pub content: String,
     pub created_at: NaiveDateTime,
     pub edited_at: Option<NaiveDateTime>,
@@ -63,7 +62,7 @@ pub struct SendMessageResponse {}
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct UserInfo {
     pub uuid: Uuid,
-    pub email: String,
+    pub email_hash: String,
     pub username: String,
     pub nickname: String,
 }
@@ -93,3 +92,6 @@ pub struct ListUsersRequest {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ListUsersResponse(pub Vec<UserInfo>);
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ChatUsersRequest(pub Uuid);

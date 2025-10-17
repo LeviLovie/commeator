@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::{Route, backend::check_user, components::Spinner};
+use crate::{backend::{check_user, get_kratos_user}, components::Spinner, Route};
 
 #[component]
 pub fn AuthCallback() -> Element {
