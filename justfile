@@ -66,7 +66,7 @@ d_publish_web:
 d_publish_server:
     docker buildx build --platform linux/amd64 -t ghcr.io/levilovie/server-amd64:latest -f Dockerfile.server --push .
 
-# Buld both web and server docker images locally
+# Build both web and server docker images locally
 d_build: d_build_web d_build_server
 
 # Publish both web and server docker images to ghcr
