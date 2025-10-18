@@ -58,7 +58,12 @@ async fn main() {
 
     app = app
         .route(endpoints::messages::IP_LIST, post(messages::list_messages))
-        .route(endpoints::messages::IP_SEND, post(messages::send_message));
+        .route(endpoints::messages::IP_SEND, post(messages::send_message))
+        .route(
+            endpoints::messages::IP_DELETE,
+            post(messages::delete_message),
+        )
+        .route(endpoints::messages::IP_EDIT, post(messages::edit_message));
 
     app = app
         .route(endpoints::users::IG_CHECK, get(users::check_user))

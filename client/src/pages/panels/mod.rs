@@ -14,7 +14,7 @@ use std::sync::Arc;
 use crate::{
     backend::my_user, centrifugo::CentrifugoClient, pages::panels::api_data::use_api_data,
 };
-use utils::{data::UserInfo, updates::Update};
+use utils::data::UserInfo;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum PanelLayout {
@@ -80,18 +80,18 @@ pub fn Panels() -> Element {
     use_context_provider(|| ChatUpdatesContext(default_updates));
 
     use_effect(move || {
-        // let mut layout = use_context::<LayoutContext>().layout;
-        // let width = web_sys::window()
-        //     .unwrap()
-        //     .inner_width()
-        //     .unwrap()
-        //     .as_f64()
-        //     .unwrap();
-        // layout.set(if width >= 768.0 {
-        //     PanelLayout::Desktop
-        // } else {
-        //     PanelLayout::Mobile
-        // });
+        let mut layout = use_context::<LayoutContext>().layout;
+        let width = web_sys::window()
+            .unwrap()
+            .inner_width()
+            .unwrap()
+            .as_f64()
+            .unwrap();
+        layout.set(if width >= 768.0 {
+            PanelLayout::Desktop
+        } else {
+            PanelLayout::Mobile
+        });
     });
 
     let layout = use_context::<LayoutContext>().layout;

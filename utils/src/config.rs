@@ -91,6 +91,8 @@ pub mod endpoints {
     pub mod messages {
         pub const IP_LIST: &str = "/messages/list";
         pub const IP_SEND: &str = "/messages/send";
+        pub const IP_DELETE: &str = "/messages/delete";
+        pub const IP_EDIT: &str = "/messages/edit";
     }
 
     pub mod users {

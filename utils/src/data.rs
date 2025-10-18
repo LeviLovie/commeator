@@ -22,6 +22,16 @@ pub struct MessageInfo {
     pub uuid: Uuid,
     pub sender_uuid: Uuid,
     pub content: String,
+    pub reply: Option<MessageInfoNoReply>,
+    pub created_at: NaiveDateTime,
+    pub edited_at: Option<NaiveDateTime>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct MessageInfoNoReply {
+    pub uuid: Uuid,
+    pub sender_uuid: Uuid,
+    pub content: String,
     pub created_at: NaiveDateTime,
     pub edited_at: Option<NaiveDateTime>,
 }

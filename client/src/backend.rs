@@ -166,11 +166,6 @@ impl RequestBuilder {
         self
     }
 
-    pub fn add_body(mut self, body: &str) -> Self {
-        self.body = Some(body.to_string());
-        self
-    }
-
     pub fn add_body_from_json<T: serde::Serialize>(mut self, body: &T) -> Self {
         self.body = Some(serde_json::to_string(body).unwrap());
         self.add_header("Content-Type", "application/json")
@@ -309,14 +304,42 @@ pub async fn list_messages(chat_uuid: Uuid) -> Result<Vec<MessageInfo>> {
     Ok(response.0)
 }
 
-pub async fn send_message(chat_uuid: Uuid, content: String) -> Result<()> {
-    let request = SendMessageRequest { chat_uuid, content };
+pub async fn send_message(chat_uuid: Uuid, content: String, reply: Option<Uuid>) -> Result<()> {
+    let request = SendMessageRequest {
+        chat_uuid,
+        content,
+        reply,
+    };
     let _ = Request::post(&on_api_base_url(messages::IP_SEND).await)
         .add_body_from_json(&request)
         .add_jwt()
         .await
         .build()
         .send_decode::<SendMessageResponse>()
+        .await?;
+    Ok(())
+}
+
+pub async fn delete_message(uuid: Uuid) -> Result<()> {
+    let request = DeleteMessageRequest(uuid);
+    Request::post(&on_api_base_url(messages::IP_DELETE).await)
+        .add_body_from_json(&request)
+        .add_jwt()
+        .await
+        .build()
+        .send_decode::<DeleteMessageResponse>()
+        .await?;
+    Ok(())
+}
+
+pub async fn edit_message(uuid: Uuid, new_content: String) -> Result<()> {
+    let request = EditMessageRequest { uuid, new_content };
+    Request::post(&on_api_base_url(messages::IP_EDIT).await)
+        .add_body_from_json(&request)
+        .add_jwt()
+        .await
+        .build()
+        .send_decode::<DeleteMessageResponse>()
         .await?;
     Ok(())
 }

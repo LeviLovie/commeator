@@ -46,10 +46,26 @@ pub struct ListMessagesResponse(pub Vec<MessageInfo>);
 pub struct SendMessageRequest {
     pub chat_uuid: Uuid,
     pub content: String,
+    pub reply: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SendMessageResponse {}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct DeleteMessageRequest(pub Uuid);
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct DeleteMessageResponse {}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct EditMessageRequest {
+    pub uuid: Uuid,
+    pub new_content: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct EditMessageResponse {}
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CheckUserResponse(pub bool);
