@@ -1,12 +1,12 @@
-use anyhow::{anyhow, Result, Context};
+use anyhow::{anyhow, Context, Result};
 use axum::{
     http::HeaderMap,
     response::{IntoResponse, Response},
     Json,
 };
-use chrono::{Duration, Utc, NaiveDateTime};
-use serde::{Deserialize, Serialize};
+use chrono::{Duration, NaiveDateTime, Utc};
 use sea_orm::{prelude::Uuid, ColumnTrait, EntityTrait, QueryFilter};
+use serde::{Deserialize, Serialize};
 
 use crate::{db, schema::*, verify_kratos_cookie, AppError};
 use utils::{
@@ -89,10 +89,7 @@ pub async fn endpoint_generate(headers: HeaderMap) -> Result<Response, AppError>
 
     let (jwt, expires_at) = generate(user.uuid).await?;
 
-    let response = GenerateJwtResponse {
-        jwt,
-        expires_at,
-    };
+    let response = GenerateJwtResponse { jwt, expires_at };
     Ok(Json(response).into_response())
 }
 
@@ -110,7 +107,10 @@ pub struct CentrifugoClaims {
     pub channels: Vec<String>,
 }
 
-pub async fn generate_centrifugo_token(uuid: Uuid, channels: Vec<String>) -> Result<(String, NaiveDateTime)> {
+pub async fn generate_centrifugo_token(
+    uuid: Uuid,
+    channels: Vec<String>,
+) -> Result<(String, NaiveDateTime)> {
     let expiration = Utc::now() + Duration::minutes(15);
     let claims = CentrifugoClaims {
         sub: uuid,
@@ -129,9 +129,7 @@ pub async fn generate_centrifugo_token(uuid: Uuid, channels: Vec<String>) -> Res
     Ok((jwt, expiration.naive_utc()))
 }
 
-pub async fn endpoint_generate_centrifugo(
-    headers: HeaderMap,
-) -> Result<Response, AppError> {
+pub async fn endpoint_generate_centrifugo(headers: HeaderMap) -> Result<Response, AppError> {
     let user = verify_jwt(&headers).await.context("Failed to verify JWT")?;
 
     let chats_member = chat_members::Entity::find()
@@ -147,9 +145,6 @@ pub async fn endpoint_generate_centrifugo(
 
     let (jwt, expires_at) = generate_centrifugo_token(user.uuid, channels).await?;
 
-    let response = GenerateJwtResponse {
-        jwt,
-        expires_at,
-    };
+    let response = GenerateJwtResponse { jwt, expires_at };
     Ok(Json(response).into_response())
 }

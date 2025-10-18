@@ -7,8 +7,12 @@ use axum::{
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter};
 
 use crate::{conn::publish, db, schema::*, verify_jwt, AppError};
-use utils::requests::{
-    ListMessagesRequest, ListMessagesResponse, MessageInfo, SendMessageRequest, SendMessageResponse,
+use utils::{
+    data::MessageInfo,
+    requests::{
+        ListMessagesRequest, ListMessagesResponse, SendMessageRequest, SendMessageResponse,
+    },
+    updates::Update,
 };
 
 pub async fn list_messages(
@@ -83,10 +87,8 @@ pub async fn send_message(
         created_at: inserted_message.created_at,
         edited_at: None,
     };
-    let serialized_message = serde_json::to_value(&message)
-        .map_err(|e| anyhow!("Failed to serialize message info: {}", e))?;
-
-    publish(&format!("chat_{}", body.chat_uuid), serialized_message).await?;
+    let update = Update::NewMessage(message);
+    publish(&format!("chat_{}", body.chat_uuid), update).await?;
 
     let response = SendMessageResponse {};
     Ok(Json(response).into_response())

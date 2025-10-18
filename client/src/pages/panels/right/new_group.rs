@@ -1,9 +1,14 @@
 use dioxus::prelude::*;
-use utils::requests::UserInfo;
+use utils::data::UserInfo;
 use uuid::Uuid;
 
 use crate::{
-    backend::{list_users, my_user, new_group}, components::{Avatar, CenteredForm, IconButton, NotFullHeightSpinner}, pages::{panels::{api_data::use_api_data, right::header::Header}, PanelContext, RightPanel}
+    backend::{list_users, my_user, new_group},
+    components::{Avatar, CenteredForm, IconButton, NotFullHeightSpinner},
+    pages::{
+        PanelContext, RightPanel,
+        panels::{api_data::use_api_data, right::header::Header},
+    },
 };
 
 #[derive(Clone, PartialEq, Debug)]
@@ -79,7 +84,7 @@ pub fn NewGroup() -> Element {
                 Stage::Title => rsx! { EnterTitle { title } },
                 Stage::Users => rsx! { AddUsers { users } },
                 Stage::Finalize => rsx! { Finalize { finalized, title, users } },
-                Stage::End => rsx! { 
+                Stage::End => rsx! {
                     div {
                         class: "my-10",
                         NotFullHeightSpinner {}
@@ -91,7 +96,11 @@ pub fn NewGroup() -> Element {
 }
 
 #[component]
-pub fn Finalize(finalized: Signal<bool>, title: Signal<(bool, Option<String>)>, users: Signal<(bool, Vec<UserInfo>)>) -> Element {
+pub fn Finalize(
+    finalized: Signal<bool>,
+    title: Signal<(bool, Option<String>)>,
+    users: Signal<(bool, Vec<UserInfo>)>,
+) -> Element {
     let users_guard = users.read();
     let users_clone = users_guard.1.clone();
 

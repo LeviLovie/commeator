@@ -60,7 +60,7 @@ pub mod endpoints {
             );
             url
         }
-        
+
         #[cfg(not(feature = "client"))]
         pub fn url_login_flow(flow_id: &str) -> String {
             let url = format!(
@@ -83,7 +83,7 @@ pub mod endpoints {
         pub const IP_GET: &str = "/chats/get";
         pub const IP_VERIFY_PRIVATE: &str = "/chats/verify_private";
     }
-    
+
     pub mod groups {
         pub const IP_NEW: &str = "/groups/new";
     }
@@ -129,9 +129,7 @@ pub async fn auth_base_url() -> String {
     }
     #[cfg(debug_assertions)]
     {
-        env!("BASE_URL_AUTH")
-            .trim_end_matches('/')
-            .to_string()
+        env!("BASE_URL_AUTH").trim_end_matches('/').to_string()
     }
 }
 
@@ -153,9 +151,7 @@ pub async fn api_base_url() -> String {
     }
     #[cfg(debug_assertions)]
     {
-        env!("BASE_URL_API")
-            .trim_end_matches('/')
-            .to_string()
+        env!("BASE_URL_API").trim_end_matches('/').to_string()
     }
 }
 
@@ -172,9 +168,7 @@ pub async fn wss_base_url() -> String {
     }
     #[cfg(debug_assertions)]
     {
-        env!("BASE_URL_WSS")
-            .trim_end_matches('/')
-            .to_string()
+        env!("BASE_URL_WSS").trim_end_matches('/').to_string()
     }
 }
 

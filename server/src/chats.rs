@@ -10,8 +10,12 @@ use sea_orm::{
 };
 
 use crate::{db, schema::*, verify_jwt, AppError};
-use utils::requests::{
-    ChatInfo, GetChatRequest, GetChatResponse, ListChatsResponse, NewChatResponse, NewGroupRequest, VerifyPrivateChatRequest
+use utils::{
+    data::ChatInfo,
+    requests::{
+        GetChatRequest, GetChatResponse, ListChatsResponse, NewChatResponse, NewGroupRequest,
+        VerifyPrivateChatRequest,
+    },
 };
 
 pub async fn list_chats(headers: HeaderMap) -> Result<Response, AppError> {

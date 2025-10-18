@@ -42,7 +42,10 @@ async fn main() {
     app = app
         .route(endpoints::jwt::IG_GENERATE, get(jwt::endpoint_generate))
         .route(endpoints::jwt::IG_VERIFY, get(jwt::endpoint_verify))
-        .route(endpoints::jwt::IG_GENERATE_CENTRIFUGO, get(jwt::endpoint_generate_centrifugo));
+        .route(
+            endpoints::jwt::IG_GENERATE_CENTRIFUGO,
+            get(jwt::endpoint_generate_centrifugo),
+        );
 
     app = app
         .route(endpoints::chats::IG_LIST, get(chats::list_chats))

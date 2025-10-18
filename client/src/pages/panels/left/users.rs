@@ -5,7 +5,7 @@ use crate::{
     components::{Avatar, Spinner},
     pages::{ApiData, Item, PanelContext, RightPanel, panels::api_data::use_api_data},
 };
-use utils::requests::UserInfo;
+use utils::data::UserInfo;
 
 #[derive(Clone)]
 pub struct UsersContext {

@@ -24,11 +24,10 @@ futures = "0.3.31"
 dotenvy = "0.15.7"
 
 [features]
-default = ["dioxus/web"]
+default = ["web"]
 web = ["dioxus/web", "dep:gloo-net"]
 desktop = ["dioxus/desktop", "dep:reqwest"]
 mobile = ["dioxus/mobile", "dep:reqwest"]
-reqwest = ["dep:reqwest", "dep:reqwest"]
 
 [profile.wasm-dev]
 inherits = "dev"

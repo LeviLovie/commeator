@@ -1,9 +1,12 @@
+use anyhow::anyhow;
 use async_once_cell::OnceCell;
 use sea_orm::{Database, DatabaseConnection};
-use anyhow::anyhow;
 
-use utils::config::server::{centrifugo_key, centrifugo_url, db_url};
 use crate::AppError;
+use utils::{
+    config::server::{centrifugo_key, centrifugo_url, db_url},
+    updates::Update,
+};
 
 static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 
@@ -16,7 +19,10 @@ pub async fn db() -> &'static DatabaseConnection {
     .await
 }
 
-pub async fn publish(channel: &str, payload: serde_json::Value) -> Result<(), AppError> {
+pub async fn publish(channel: &str, update: Update) -> Result<(), AppError> {
+    let payload =
+        serde_json::to_value(update).map_err(|e| anyhow!("Failed to serialize update: {}", e))?;
+
     let body = serde_json::json!({
         "channel": channel,
         "data": payload

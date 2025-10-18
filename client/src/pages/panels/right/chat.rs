@@ -2,9 +2,11 @@ use dioxus::prelude::*;
 use uuid::Uuid;
 
 use crate::{
-    backend::{chat_users, get_chat, list_messages, my_user, send_message}, centrifugo::connect_to_centrifugo_channel, components::{Avatar, IconButton, Spinner}, pages::{panels::right::header::Header, LayoutContext, PanelLayout}
+    backend::{chat_users, get_chat, list_messages, my_user, send_message},
+    components::{Avatar, IconButton, Spinner},
+    pages::{panels::right::header::Header, CentrifugoContext, LayoutContext, PanelLayout},
 };
-use utils::requests::{ChatInfo, MessageInfo, UserInfo};
+use utils::{data::{ChatInfo, MessageInfo, UserInfo}, updates::Update};
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct ChatState {
@@ -15,8 +17,13 @@ pub struct ChatState {
     messages: Option<Vec<MessageInfo>>,
 }
 
+pub type ChatUpdatesSignal = Signal<Vec<(Uuid, Update)>>;
+#[derive(Clone, Debug)]
+pub struct ChatUpdatesContext(pub ChatUpdatesSignal);
+
 #[component]
 pub fn Chat(uuid: Uuid) -> Element {
+    let centrifugo = use_context::<CentrifugoContext>();
     let mut state = use_signal(|| ChatState {
         uuid: None,
         chat: None,
@@ -25,21 +32,41 @@ pub fn Chat(uuid: Uuid) -> Element {
         messages: None,
     });
 
-    spawn(async move {
-        connect_to_centrifugo_channel(
-            format!("chat_{}", uuid).as_str(),
-            move |json| {
-                let message = serde_json::from_value::<MessageInfo>(json.clone());
-                if let Ok(message) = message && state.read().messages.is_some() {
-                    if state.read().messages.as_ref().unwrap().iter().any(|m| m.uuid == message.uuid) {
-                        return;
-                    }
-                    state.write().messages.as_mut().unwrap().push(message);
-                } else {
-                    error!("Failed to parse incoming message: {:?}", json);
+    use_effect({
+        let client = centrifugo.client.clone();
+        let mut updates = use_context::<ChatUpdatesContext>();
+        move || {
+            let client = client.clone();
+            spawn(async move {
+                let _ = client.subscribe(&format!("chat_{}", uuid), move |update| {
+                    updates.0.push((uuid, update));
+                }).await;
+            });
+        }
+    });
+
+    use_effect({
+        let updates = use_context::<ChatUpdatesContext>();
+        let mut state = state;
+        move || {
+            let mut updates = updates.0.read().clone();
+            if updates.is_empty() {
+                return;
+            }
+            let mut state_guard = state.write();
+            for (uuid, update) in updates.iter() {
+                if uuid != &state_guard.uuid.unwrap_or_default() {
+                    continue;
                 }
-            },
-        ).await;
+                if let Update::NewMessage(message) = update &&
+                    state_guard.messages.is_some() &&
+                    !state_guard.messages.as_ref().unwrap().iter().any(|m| m.uuid == message.uuid)
+                {
+                    state_guard.messages.as_mut().unwrap().push(message.clone());
+                }
+            }
+            updates.clear();
+        }
     });
 
     use_effect({
@@ -144,11 +171,7 @@ pub fn MessageItem(user: Option<UserInfo>, message: MessageInfo, is_me: bool) ->
         "flex justify-start mb-2"
     };
 
-    let bubble_color = if is_me {
-        "bg-green-200"
-    } else {
-        "bg-white"
-    };
+    let bubble_color = if is_me { "bg-green-200" } else { "bg-white" };
 
     rsx! {
         div { class: "{container_class}",
@@ -176,7 +199,6 @@ pub fn MessageAvatar(email_hash: String) -> Element {
         }
     }
 }
-
 
 #[component]
 pub fn MessageBox(uuid: Uuid) -> Element {

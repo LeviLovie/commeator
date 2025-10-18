@@ -5,17 +5,23 @@ use serde::de::DeserializeOwned;
 use std::sync::{LazyLock, Mutex};
 use uuid::Uuid;
 
-use crate::{components::logout, Route};
+use crate::{components::logout};
 use utils::{
     auth::KratosUserData,
     config::{
-        endpoints::{auth::{URI_LOGIN, URI_WHOAMI}, *}, on_api_base_url, on_auth_base_url,
+        endpoints::{
+            auth::{URI_LOGIN, URI_WHOAMI},
+            *,
+        },
+        on_api_base_url, on_auth_base_url,
     },
+    data::{ChatInfo, MessageInfo, UserInfo},
     requests::*,
 };
 
 static JWT: LazyLock<Mutex<Option<(String, NaiveDateTime)>>> = LazyLock::new(|| Mutex::new(None));
-pub static CENTRIFUGO_JWT: LazyLock<Mutex<Option<(String, NaiveDateTime)>>> = LazyLock::new(|| Mutex::new(None));
+pub static CENTRIFUGO_JWT: LazyLock<Mutex<Option<(String, NaiveDateTime)>>> =
+    LazyLock::new(|| Mutex::new(None));
 
 async fn regenerate_centrifugo_jwt() {
     match generate_centrifugo_jwt().await {
@@ -124,7 +130,7 @@ impl Request {
         use reqwest::Client;
 
         let client = Client::new();
-        let mut request = match self.method {
+        let request = match self.method {
             Method::Get => client.get(&self.url),
             Method::Post => client.post(&self.url),
         };
@@ -137,13 +143,13 @@ impl Request {
         } else {
             request
         };
-        let response = request.send().await.map_err(|e| e.to_string())?;
+        let response = request.send().await.map_err(|e| anyhow!(e.to_string()))?;
         if !response.status().is_success() {
             bail!("Request failed with status: {}", response.status())
         }
 
-        let text = response.text().await.map_err(|e| e.to_string())?;
-        serde_json::from_str(&text).map_err(|e| e.to_string())?
+        let text = response.text().await.map_err(|e| anyhow!(e.to_string()))?;
+        serde_json::from_str(&text).map_err(|e| anyhow!(e.to_string()))
     }
 }
 
@@ -157,6 +163,11 @@ pub struct RequestBuilder {
 impl RequestBuilder {
     pub fn add_header(mut self, key: &str, value: &str) -> Self {
         self.headers.push((key.to_string(), value.to_string()));
+        self
+    }
+
+    pub fn add_body(mut self, body: &str) -> Self {
+        self.body = Some(body.to_string());
         self
     }
 
@@ -275,10 +286,7 @@ pub async fn verify_private_chat(user_uuid: Uuid) -> Result<Uuid> {
 }
 
 pub async fn new_group(title: String, members: Vec<Uuid>) -> Result<Uuid> {
-    let request = NewGroupRequest {
-        title,
-        members
-    };
+    let request = NewGroupRequest { title, members };
     let response = Request::post(&on_api_base_url(groups::IP_NEW).await)
         .add_body_from_json(&request)
         .add_jwt()
@@ -387,8 +395,7 @@ async fn try_get_kratos_user() -> Result<KratosUserData> {
 pub async fn get_kratos_user() -> Option<KratosUserData> {
     match try_get_kratos_user().await {
         Ok(user) => Some(user),
-        Err(e) => {
-            info!("Error getting Kratos user: {}", e);
+        Err(_) => {
             navigator().replace(on_auth_base_url(URI_LOGIN).await);
             None
         }
