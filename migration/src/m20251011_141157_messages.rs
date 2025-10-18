@@ -10,6 +10,7 @@ pub enum Messages {
     ChatUuid,
     SenderUuid,
     Content,
+    Reply,
     CreatedAt,
     EditedAt,
     Deleted,

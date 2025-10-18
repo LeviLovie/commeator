@@ -14,6 +14,7 @@ pub struct Model {
     pub created_at: DateTime,
     pub edited_at: Option<DateTime>,
     pub deleted: bool,
+    pub reply: Option<Uuid>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

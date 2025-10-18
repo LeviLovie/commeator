@@ -9,8 +9,12 @@ use sea_orm::{
 };
 
 use crate::{db, schema::*, verify_jwt, verify_kratos_cookie, AppError};
-use utils::requests::{
-    ChatUsersRequest, CheckUserResponse, GetUserRequest, GetUserResponse, ListUsersRequest, ListUsersResponse, SetupUserRequest, SetupUserResponse, UserInfo
+use utils::{
+    data::UserInfo,
+    requests::{
+        ChatUsersRequest, CheckUserResponse, GetUserRequest, GetUserResponse, ListUsersRequest,
+        ListUsersResponse, SetupUserRequest, SetupUserResponse,
+    },
 };
 
 #[cfg(debug_assertions)]
@@ -32,10 +36,7 @@ pub async fn debug_user(Json(body): Json<UserInfo>) -> Result<Response, AppError
         .await
         .context("Failed to generate JWT")?;
 
-    let response = utils::requests::GenerateJwtResponse{
-        jwt,
-        expires_at
-    };
+    let response = utils::requests::GenerateJwtResponse { jwt, expires_at };
     Ok(Json(response).into_response())
 }
 

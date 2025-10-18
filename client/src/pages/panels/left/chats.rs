@@ -3,9 +3,9 @@ use dioxus::prelude::*;
 use crate::{
     backend::list_chats,
     components::{SmallIconButton, Spinner},
-    pages::{panels::api_data::use_api_data, ApiData, Item, PanelContext, RightPanel},
+    pages::{ApiData, Item, PanelContext, RightPanel, panels::api_data::use_api_data},
 };
-use utils::requests::ChatInfo;
+use utils::data::ChatInfo;
 
 #[derive(Clone)]
 pub struct ChatsContext {

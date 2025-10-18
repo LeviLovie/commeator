@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use utils::requests::UserInfo;
 use uuid::Uuid;
 
 use crate::{
@@ -7,6 +6,7 @@ use crate::{
     components::{Avatar, Spinner},
     pages::{LeftPanel, PanelContext, RightPanel, panels::right::header::Header},
 };
+use utils::data::UserInfo;
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct ProfileState {

@@ -5,17 +5,23 @@ use serde::de::DeserializeOwned;
 use std::sync::{LazyLock, Mutex};
 use uuid::Uuid;
 
-use crate::{components::logout, Route};
+use crate::components::logout;
 use utils::{
     auth::KratosUserData,
     config::{
-        endpoints::{auth::{URI_LOGIN, URI_WHOAMI}, *}, on_api_base_url, on_auth_base_url,
+        endpoints::{
+            auth::{URI_LOGIN, URI_WHOAMI},
+            *,
+        },
+        on_api_base_url, on_auth_base_url,
     },
+    data::{ChatInfo, MessageInfo, UserInfo},
     requests::*,
 };
 
 static JWT: LazyLock<Mutex<Option<(String, NaiveDateTime)>>> = LazyLock::new(|| Mutex::new(None));
-pub static CENTRIFUGO_JWT: LazyLock<Mutex<Option<(String, NaiveDateTime)>>> = LazyLock::new(|| Mutex::new(None));
+pub static CENTRIFUGO_JWT: LazyLock<Mutex<Option<(String, NaiveDateTime)>>> =
+    LazyLock::new(|| Mutex::new(None));
 
 async fn regenerate_centrifugo_jwt() {
     match generate_centrifugo_jwt().await {
@@ -124,7 +130,7 @@ impl Request {
         use reqwest::Client;
 
         let client = Client::new();
-        let mut request = match self.method {
+        let request = match self.method {
             Method::Get => client.get(&self.url),
             Method::Post => client.post(&self.url),
         };
@@ -137,13 +143,13 @@ impl Request {
         } else {
             request
         };
-        let response = request.send().await.map_err(|e| e.to_string())?;
+        let response = request.send().await.map_err(|e| anyhow!(e.to_string()))?;
         if !response.status().is_success() {
             bail!("Request failed with status: {}", response.status())
         }
 
-        let text = response.text().await.map_err(|e| e.to_string())?;
-        serde_json::from_str(&text).map_err(|e| e.to_string())?
+        let text = response.text().await.map_err(|e| anyhow!(e.to_string()))?;
+        serde_json::from_str(&text).map_err(|e| anyhow!(e.to_string()))
     }
 }
 
@@ -275,10 +281,7 @@ pub async fn verify_private_chat(user_uuid: Uuid) -> Result<Uuid> {
 }
 
 pub async fn new_group(title: String, members: Vec<Uuid>) -> Result<Uuid> {
-    let request = NewGroupRequest {
-        title,
-        members
-    };
+    let request = NewGroupRequest { title, members };
     let response = Request::post(&on_api_base_url(groups::IP_NEW).await)
         .add_body_from_json(&request)
         .add_jwt()
@@ -301,14 +304,42 @@ pub async fn list_messages(chat_uuid: Uuid) -> Result<Vec<MessageInfo>> {
     Ok(response.0)
 }
 
-pub async fn send_message(chat_uuid: Uuid, content: String) -> Result<()> {
-    let request = SendMessageRequest { chat_uuid, content };
+pub async fn send_message(chat_uuid: Uuid, content: String, reply: Option<Uuid>) -> Result<()> {
+    let request = SendMessageRequest {
+        chat_uuid,
+        content,
+        reply,
+    };
     let _ = Request::post(&on_api_base_url(messages::IP_SEND).await)
         .add_body_from_json(&request)
         .add_jwt()
         .await
         .build()
         .send_decode::<SendMessageResponse>()
+        .await?;
+    Ok(())
+}
+
+pub async fn delete_message(uuid: Uuid) -> Result<()> {
+    let request = DeleteMessageRequest(uuid);
+    Request::post(&on_api_base_url(messages::IP_DELETE).await)
+        .add_body_from_json(&request)
+        .add_jwt()
+        .await
+        .build()
+        .send_decode::<DeleteMessageResponse>()
+        .await?;
+    Ok(())
+}
+
+pub async fn edit_message(uuid: Uuid, new_content: String) -> Result<()> {
+    let request = EditMessageRequest { uuid, new_content };
+    Request::post(&on_api_base_url(messages::IP_EDIT).await)
+        .add_body_from_json(&request)
+        .add_jwt()
+        .await
+        .build()
+        .send_decode::<DeleteMessageResponse>()
         .await?;
     Ok(())
 }
@@ -387,8 +418,7 @@ async fn try_get_kratos_user() -> Result<KratosUserData> {
 pub async fn get_kratos_user() -> Option<KratosUserData> {
     match try_get_kratos_user().await {
         Ok(user) => Some(user),
-        Err(e) => {
-            info!("Error getting Kratos user: {}", e);
+        Err(_) => {
             navigator().replace(on_auth_base_url(URI_LOGIN).await);
             None
         }

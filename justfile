@@ -49,3 +49,25 @@ m_new NAME:
 # Generate rust entity files from the database schema
 m_generate:
     sea-orm-cli generate entity -o server/src/entities
+
+# Build web as a local docker image
+d_build_web:
+    docker build -f Dockerfile.web -t commeator-web:latest .
+
+# Build server as a local docker image
+d_build_server:
+    docker build -f Dockerfile.server -t commeator-server:latest .
+
+# Build web and publish to ghcr for amd64 in levilovie registry
+d_publish_web:
+    docker buildx build --platform linux/amd64 -t ghcr.io/levilovie/web-amd64:latest -f Dockerfile.web --push .
+
+# Build server and publish to ghcr for amd64 in levilovie registry
+d_publish_server:
+    docker buildx build --platform linux/amd64 -t ghcr.io/levilovie/server-amd64:latest -f Dockerfile.server --push .
+
+# Build both web and server docker images locally
+d_build: d_build_web d_build_server
+
+# Publish both web and server docker images to ghcr
+d_publish: d_publish_web d_publish_server

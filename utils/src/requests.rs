@@ -2,6 +2,8 @@ use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::data::{ChatInfo, MessageInfo, UserInfo};
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GenerateJwtResponse {
     pub jwt: String,
@@ -10,13 +12,6 @@ pub struct GenerateJwtResponse {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct VerifyJwtResponse(pub bool);
-
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct ChatInfo {
-    pub uuid: Uuid,
-    pub name: String,
-    pub is_group: bool,
-}
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ListChatsResponse(pub Vec<ChatInfo>);
@@ -41,15 +36,6 @@ pub struct NewGroupRequest {
     pub members: Vec<Uuid>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct MessageInfo {
-    pub uuid: Uuid,
-    pub sender_uuid: Uuid,
-    pub content: String,
-    pub created_at: NaiveDateTime,
-    pub edited_at: Option<NaiveDateTime>,
-}
-
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ListMessagesRequest(pub Uuid);
 
@@ -60,18 +46,26 @@ pub struct ListMessagesResponse(pub Vec<MessageInfo>);
 pub struct SendMessageRequest {
     pub chat_uuid: Uuid,
     pub content: String,
+    pub reply: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SendMessageResponse {}
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct UserInfo {
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct DeleteMessageRequest(pub Uuid);
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct DeleteMessageResponse {}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct EditMessageRequest {
     pub uuid: Uuid,
-    pub email_hash: String,
-    pub username: String,
-    pub nickname: String,
+    pub new_content: String,
 }
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct EditMessageResponse {}
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CheckUserResponse(pub bool);

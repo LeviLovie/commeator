@@ -9,9 +9,12 @@ pub use nav_bar::NavBar;
 pub use right::*;
 
 use dioxus::prelude::*;
+use std::sync::Arc;
 
-use crate::{backend::my_user, pages::panels::api_data::use_api_data};
-use utils::requests::UserInfo;
+use crate::{
+    backend::my_user, centrifugo::CentrifugoClient, pages::panels::api_data::use_api_data,
+};
+use utils::data::UserInfo;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum PanelLayout {
@@ -32,27 +35,49 @@ pub struct LayoutContext {
     pub layout: Signal<PanelLayout>,
 }
 
+#[derive(Clone)]
+pub struct CentrifugoContext {
+    pub client: Arc<CentrifugoClient>,
+}
+
 #[component]
 pub fn Panels() -> Element {
-    let default_layout = use_signal(|| PanelLayout::Desktop);
-
-    use_context_provider(|| LayoutContext {
-        layout: default_layout,
-    });
-
     let left = use_signal(|| LeftPanel::Chats);
     let right = use_signal(|| RightPanel::Empty);
     let user = use_api_data(|| async { my_user().await });
     let settings_page = use_signal(|| SettingsPage::Empty);
-
     let context = PanelContext {
         left,
         right,
         user,
         settings_page,
     };
-
     use_context_provider(|| context.clone());
+
+    let default_layout = use_signal(|| PanelLayout::Desktop);
+    use_context_provider(|| LayoutContext {
+        layout: default_layout,
+    });
+
+    #[allow(clippy::arc_with_non_send_sync)]
+    let centrifugo = Arc::new(CentrifugoClient::new());
+    use_future({
+        let centrifugo = centrifugo.clone();
+        move || {
+            let centrifugo = centrifugo.clone();
+            async move {
+                if let Err(e) = centrifugo.connect().await {
+                    error!("Failed to connect to Centrifugo: {e}");
+                }
+            }
+        }
+    });
+    use_context_provider(|| CentrifugoContext {
+        client: centrifugo.clone(),
+    });
+
+    let default_updates: ChatUpdatesSignal = use_signal(Vec::new);
+    use_context_provider(|| ChatUpdatesContext(default_updates));
 
     use_effect(move || {
         let mut layout = use_context::<LayoutContext>().layout;

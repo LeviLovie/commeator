@@ -17,11 +17,11 @@ pub struct Traits {
 
 #[cfg(feature = "server")]
 pub mod server {
-    use anyhow::{bail, Context, Result};
+    use anyhow::{Context, Result, bail};
     use reqwest::Client;
 
-    use crate::config::{endpoints::auth::URI_WHOAMI, on_auth_base_url};
     use super::*;
+    use crate::config::{endpoints::auth::URI_WHOAMI, on_auth_base_url};
 
     pub async fn get_user_from_cookie(cookie: &str) -> Result<KratosUserData> {
         let res = Client::new()

@@ -15,7 +15,8 @@ enum Route {
     Home,
 
     #[nest("/login")]
-        #[route("/callback")] AuthCallback,
+        #[route("/callback")]
+        AuthCallback,
 
         #[route("/setup")]
         AuthProfileSetup,
