@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use futures::{lock::Mutex, SinkExt, StreamExt};
+use futures::{SinkExt, StreamExt, lock::Mutex};
 use serde_json::Value;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -72,11 +72,22 @@ impl CentrifugoClient {
                         continue;
                     }
 
-                    let Ok(json) = serde_json::from_str::<Value>(&txt) else { continue; };
-                    let Some(push) = json.get("push") else { continue };
-                    let channel = push.get("channel").and_then(|v| v.as_str()).unwrap_or_default();
-                    let Some(pub_data) = push.get("pub") else { continue };
-                    let Some(data) = pub_data.get("data") else { continue };
+                    let Ok(json) = serde_json::from_str::<Value>(&txt) else {
+                        continue;
+                    };
+                    let Some(push) = json.get("push") else {
+                        continue;
+                    };
+                    let channel = push
+                        .get("channel")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or_default();
+                    let Some(pub_data) = push.get("pub") else {
+                        continue;
+                    };
+                    let Some(data) = pub_data.get("data") else {
+                        continue;
+                    };
                     if txt == "{}" {
                         let mut ws_lock = ws_clone.lock().await;
                         if let Some(ws) = ws_lock.as_mut() {

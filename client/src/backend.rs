@@ -5,7 +5,7 @@ use serde::de::DeserializeOwned;
 use std::sync::{LazyLock, Mutex};
 use uuid::Uuid;
 
-use crate::{components::logout};
+use crate::components::logout;
 use utils::{
     auth::KratosUserData,
     config::{

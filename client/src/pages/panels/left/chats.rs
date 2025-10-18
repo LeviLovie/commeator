@@ -5,7 +5,7 @@ use crate::{
     components::{SmallIconButton, Spinner},
     pages::{ApiData, Item, PanelContext, RightPanel, panels::api_data::use_api_data},
 };
-use utils::{data::ChatInfo};
+use utils::data::ChatInfo;
 
 #[derive(Clone)]
 pub struct ChatsContext {

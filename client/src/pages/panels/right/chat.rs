@@ -3,10 +3,13 @@ use uuid::Uuid;
 
 use crate::{
     backend::{chat_users, get_chat, list_messages, my_user, send_message},
-    components::{Avatar, IconButton, Spinner},
+    components::{Avatar, IconButton, SmallIconButton, Spinner},
     pages::{panels::right::header::Header, CentrifugoContext, LayoutContext, PanelLayout},
 };
-use utils::{data::{ChatInfo, MessageInfo, UserInfo}, updates::Update};
+use utils::{
+    data::{ChatInfo, MessageInfo, UserInfo},
+    updates::Update,
+};
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct ChatState {
@@ -31,6 +34,7 @@ pub fn Chat(uuid: Uuid) -> Element {
         my_user: None,
         messages: None,
     });
+    let context_message = use_signal::<Option<Uuid>>(|| None);
 
     use_effect({
         let client = centrifugo.client.clone();
@@ -38,9 +42,11 @@ pub fn Chat(uuid: Uuid) -> Element {
         move || {
             let client = client.clone();
             spawn(async move {
-                let _ = client.subscribe(&format!("chat_{}", uuid), move |update| {
-                    updates.0.push((uuid, update));
-                }).await;
+                let _ = client
+                    .subscribe(&format!("chat_{}", uuid), move |update| {
+                        updates.0.push((uuid, update));
+                    })
+                    .await;
             });
         }
     });
@@ -58,9 +64,14 @@ pub fn Chat(uuid: Uuid) -> Element {
                 if uuid != &state_guard.uuid.unwrap_or_default() {
                     continue;
                 }
-                if let Update::NewMessage(message) = update &&
-                    state_guard.messages.is_some() &&
-                    !state_guard.messages.as_ref().unwrap().iter().any(|m| m.uuid == message.uuid)
+                if let Update::NewMessage(message) = update
+                    && state_guard.messages.is_some()
+                    && !state_guard
+                        .messages
+                        .as_ref()
+                        .unwrap()
+                        .iter()
+                        .any(|m| m.uuid == message.uuid)
                 {
                     state_guard.messages.as_mut().unwrap().push(message.clone());
                 }
@@ -145,7 +156,7 @@ pub fn Chat(uuid: Uuid) -> Element {
                     } else {
                         false
                     };
-                    rsx! { MessageItem { user, message: message.clone(), is_me } }
+                    rsx! { MessageItem { user, message: message.clone(), is_me, context_message, } }
                 }) }
             }
 
@@ -158,7 +169,7 @@ pub fn Chat(uuid: Uuid) -> Element {
 }
 
 #[component]
-pub fn MessageItem(user: Option<UserInfo>, message: MessageInfo, is_me: bool) -> Element {
+pub fn MessageItem(user: Option<UserInfo>, message: MessageInfo, is_me: bool, context_message: Signal<Option<Uuid>>,) -> Element {
     let layout_signal = use_context::<LayoutContext>().layout;
     let layout_guard = layout_signal.read();
     let layout = layout_guard.clone();
@@ -175,17 +186,49 @@ pub fn MessageItem(user: Option<UserInfo>, message: MessageInfo, is_me: bool) ->
 
     rsx! {
         div { class: "{container_class}",
-            { if !location_right && let Some(ref user) = user {
-                rsx! { MessageAvatar { email_hash: user.email_hash.clone() } }
-            } else { rsx! {} } }
+            { if !location_right && let Some(ref user) = user { rsx! {
+                MessageAvatar { email_hash: user.email_hash.clone() }
+            } } else { rsx! {} } }
 
-            div { class: "{bubble_color} text-gray-900 rounded-2xl rounded px-4 py-2 max-w-[65%] shadow",
-                p { class: "whitespace-pre-wrap break-words text-sm", "{message.content}" }
+            div {
+                class: "flex flex-col max-w-[65%] min-w-[50px]",
+
+                div {
+                    class: "{bubble_color} text-gray-900 rounded-2xl px-4 py-2 inline-flex w-full break-words shadow",
+
+                    p {
+                        class: "whitespace-pre-wrap break-words text-sm",
+                        "{message.content}"
+                    }
+
+                    SmallIconButton {
+                        alt: "Options".to_string(),
+                        icon: asset!("/assets/icons/options.svg"),
+                        ty: "button".to_string(),
+                        onclick: move |_| {
+                            context_message.set(Some(message.uuid));
+                        },
+                    }
+                }
+
+                { if context_message.read().is_some_and(|uuid| uuid == message.uuid) {
+                    rsx! {
+                        div {
+                            class: "flex justify-center mt-1",
+                            div {
+                                class: "bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded",
+                                "Context Message"
+                            }
+                        }
+                    }
+                } else {
+                    rsx! {}
+                } }
             }
 
-            { if location_right && let Some(ref user) = user {
-                rsx! { MessageAvatar { email_hash: user.email_hash.clone() } }
-            } else { rsx! {} } }
+            { if location_right && let Some(ref user) = user { rsx! {
+                MessageAvatar { email_hash: user.email_hash.clone() }
+            } } else { rsx! {} } }
         }
     }
 }
