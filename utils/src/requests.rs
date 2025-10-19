@@ -74,6 +74,9 @@ pub struct CheckUserResponse(pub bool);
 pub struct GetUserRequest(pub Uuid);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct GetUsernameRequest(pub String);
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GetUserResponse(pub UserInfo);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

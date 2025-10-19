@@ -17,8 +17,13 @@ enum Route {
     #[route("/")]
     ViewHome,
 
-    #[route("/u/l")]
-    ViewUsers,
+    #[nest("/u")]
+        #[route("/")]
+        ViewUsers,
+
+        #[route("/u/:username")]
+        #[end_nest]
+        ViewUser { username: String },
 
     #[nest("/c")]
         #[route("/")]

@@ -47,18 +47,20 @@ pub fn RightChat(uuid: String) -> Element {
         messages: None,
     });
 
-    let default_message = use_signal(String::new);
-    let default_message_context = use_signal(|| None);
-    let default_delete = use_signal(|| None);
-    let default_reply = use_signal(|| None);
-    let default_edit = use_signal(|| (false, None));
-    use_context_provider(|| ChatInterContext {
-        message: default_message,
-        message_context: default_message_context,
-        delete: default_delete,
-        reply: default_reply,
-        edit: default_edit,
-    });
+    {
+        let default_message = use_signal(String::new);
+        let default_message_context = use_signal(|| None);
+        let default_delete = use_signal(|| None);
+        let default_reply = use_signal(|| None);
+        let default_edit = use_signal(|| (false, None));
+        use_context_provider(|| ChatInterContext {
+            message: default_message,
+            message_context: default_message_context,
+            delete: default_delete,
+            reply: default_reply,
+            edit: default_edit,
+        });
+    };
     let mut context = use_context::<ChatInterContext>();
 
     use_effect({

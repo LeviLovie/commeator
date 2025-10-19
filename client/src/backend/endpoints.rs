@@ -374,6 +374,18 @@ pub async fn get_user(uuid: Uuid) -> Result<UserInfo> {
     Ok(response.0)
 }
 
+pub async fn get_username(username: String) -> Result<UserInfo> {
+    let request = GetUsernameRequest(username);
+    let response = Request::post(&on_api_base_url(users::IP_NAME).await)
+        .add_body_from_json(&request)
+        .add_jwt()
+        .await
+        .build()
+        .send_decode::<GetUserResponse>()
+        .await?;
+    Ok(response.0)
+}
+
 pub async fn setup_user(username: String, nickname: String) -> Result<()> {
     let request = SetupUserRequest { username, nickname };
     let _ = Request::post(&on_api_base_url(users::IP_SETUP).await)
