@@ -6,7 +6,7 @@ use crate::components::IconButton;
 pub fn Header(left: Element, center: Element, right: Element) -> Element {
     rsx! {
         div {
-            class: "flex items-center justify-between chat-header p-2 border-b border-gray-300",
+            class: "flex sticky top-0 bg-white z-10 items-center justify-between chat-header p-2 border-b border-gray-300",
 
             div {
                 class: "flex w-8",

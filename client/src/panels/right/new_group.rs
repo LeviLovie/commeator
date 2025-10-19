@@ -3,12 +3,8 @@ use utils::data::UserInfo;
 use uuid::Uuid;
 
 use crate::{
-    backend::{list_users, my_user, new_group},
-    components::{Avatar, CenteredForm, IconButton, NotFullHeightSpinner},
-    pages::{
-        PanelContext, RightPanel,
-        panels::{api_data::use_api_data, right::header::Header},
-    },
+    backend::{list_users, my_user, new_group, use_api_data},
+    components::{Avatar, CenteredForm, Header, HeaderButtonBack, HeaderText, IconButton, NotFullHeightSpinner}, Route,
 };
 
 #[derive(Clone, PartialEq, Debug)]
@@ -20,7 +16,9 @@ pub enum Stage {
 }
 
 #[component]
-pub fn NewGroup() -> Element {
+pub fn RightNewGroup() -> Element {
+    let navigator = navigator();
+
     let mut state = use_signal(|| Stage::Title);
     let title: Signal<(bool, Option<String>)> = use_signal(|| (false, None));
     let users: Signal<(bool, Vec<UserInfo>)> = use_signal(|| (false, Vec::new()));
@@ -54,10 +52,9 @@ pub fn NewGroup() -> Element {
 
                         match new_group(title, user_uuids).await {
                             Ok(uuid) => {
-                                info!("New group created with UUID: {}", uuid);
-                                use_context::<PanelContext>()
-                                    .right
-                                    .set(RightPanel::Chat(uuid));
+                                navigator.replace(Route::ViewChat {
+                                    uuid: uuid.to_string(),
+                                });
                             }
                             Err(e) => {
                                 error!("Failed to create new group: {}", e);
@@ -77,7 +74,13 @@ pub fn NewGroup() -> Element {
     });
 
     rsx! {
-        Header { title: "New group" }
+        Header {
+            left: rsx! { HeaderButtonBack {} },
+            center: rsx! { HeaderText {
+                text: "New Group"
+            } },
+            right: rsx! {},
+        }
 
         CenteredForm {
             { match *state.read() {

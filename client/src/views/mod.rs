@@ -1,4 +1,5 @@
 mod chats;
+mod groups;
 mod home;
 mod settings;
 mod users;
@@ -6,6 +7,7 @@ mod users;
 pub use chats::*;
 pub use home::*;
 pub use settings::*;
+pub use groups::*;
 pub use users::*;
 
 use dioxus::prelude::*;
@@ -62,7 +64,7 @@ pub fn View(view_right: bool, left: Element, right: Element) -> Element {
     match *layout.read() {
         PanelLayout::Desktop => rsx! {
             div {
-                class: "flex h-[100dvh] w-screen",
+                class: "flex h-[100vh] w-screen",
 
                 div {
                     class: "flex flex-col border-r border-gray-300",

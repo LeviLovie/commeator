@@ -33,6 +33,11 @@ enum Route {
         ViewChat { uuid: String },
 
     #[end_nest]
+    #[nest("/g")]
+        #[route("/new")]
+        ViewNewGroup,
+
+    #[end_nest]
     #[nest("/s")]
         #[route("/")]
         ViewSettings,

@@ -17,7 +17,7 @@ pub fn IconButton(props: IconButtonProps) -> Element {
         button {
             r#type: "{props.ty}",
             key: "{props.alt}",
-            class: "flex flex-col items-center transition transform duration-300 hover:scale-110 hover:bg-gray-200 p-2 rounded",
+            class: "flex flex-col p-1 items-center transition transform duration-300 hover:scale-110 hover:bg-gray-200 rounded",
             onclick: move |e| {
                 if let Some(cb) = &onclick {
                     cb.call(e);

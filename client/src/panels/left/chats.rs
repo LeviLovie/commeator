@@ -28,43 +28,39 @@ pub fn LeftChats() -> Element {
     let chats = chats.as_ref().unwrap();
 
     rsx! {
-        div {
-            Header {
-                left: rsx! {
-                    HeaderText { text: "Chats" }
-                },
-                center: rsx! {},
-                right: rsx! {
-                    HeaderButton {
-                        SmallIconButton {
-                            alt: "New group".to_string(),
-                            icon: asset!("/assets/icons/add.svg"),
-                            ty: "button".to_string(),
-                            onclick: move |_| {
-                                info!("Create group clicked");
-                                // TODO
-                                // navigator.push(Route::ViewCreateGroup);
-                            },
-                        }
-                    }
-                },
-            }
-
-            { chats.iter().map(|chat| {
-                let uuid = chat.uuid;
-                rsx! {
-                    Item {
-                        button {
-                            class: "text-left p-2 w-full h-full hover:bg-gray-300 cursor-pointer",
-                            onclick: move |_| {
-                                navigator.push(Route::ViewChat { uuid: uuid.to_string() });
-                            },
-
-                            "{chat.name}"
-                        }
+        Header {
+            left: rsx! {
+                HeaderText { text: "Chats" }
+            },
+            center: rsx! {},
+            right: rsx! {
+                HeaderButton {
+                    SmallIconButton {
+                        alt: "New group".to_string(),
+                        icon: asset!("/assets/icons/add.svg"),
+                        ty: "button".to_string(),
+                        onclick: move |_| {
+                            navigator.push(Route::ViewNewGroup);
+                        },
                     }
                 }
-            }) }
+            },
         }
+
+        { chats.iter().map(|chat| {
+            let uuid = chat.uuid;
+            rsx! {
+                Item {
+                    button {
+                        class: "text-left p-2 w-full h-full hover:bg-gray-300 cursor-pointer",
+                        onclick: move |_| {
+                            navigator.push(Route::ViewChat { uuid: uuid.to_string() });
+                        },
+
+                        "{chat.name}"
+                    }
+                }
+            }
+        }) }
     }
 }

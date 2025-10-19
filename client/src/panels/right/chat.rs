@@ -136,7 +136,7 @@ pub fn RightChat(uuid: String) -> Element {
 
     rsx! {
         div {
-            class: "flex flex-col h-screen",
+            class: "flex flex-col h-full",
 
             Header {
                 left: rsx! { HeaderButtonBack { } },
@@ -159,10 +159,7 @@ pub fn RightChat(uuid: String) -> Element {
                 }) }
             }
 
-            div {
-                class: "border-t border-gray-300 bg-white p-2 sticky bottom-0",
-                MessageBox { uuid }
-            }
+            MessageBox { uuid }
         }
     }
 }
@@ -443,61 +440,65 @@ pub fn MessageBox(uuid: Uuid) -> Element {
     };
 
     rsx! {
-        form {
-            class: "flex gap-2",
-            onsubmit: move |e| {
-                e.prevent_default();
+        div {
+            class: "sticky bottom-0 bg-white border-t border-gray-300 p-2",
 
-                let msg = message.read().trim().to_string();
-                if msg.is_empty() {
-                    return;
-                }
+            form {
+                class: "flex gap-2",
+                onsubmit: move |e| {
+                    e.prevent_default();
 
-                if context.edit.read().1.is_some() {
-                    let edit_uuid = context.edit.read().1.unwrap();
-                    context.edit.set((false, None));
-                    spawn(async move {
-                        if let Err(e) = edit_message(edit_uuid, msg).await {
-                            error!("Failed to edit message: {}", e);
-                        }
-                    });
-                    message.set(String::new());
-                } else {
-                    spawn(async move {
-                        let reply = *context.reply.read();
-                        if let Err(e) = send_message(uuid, msg, reply).await {
-                            error!("Failed to send message: {}", e);
-                        }
-                        message.set(String::new());
-                        context.reply.set(None);
-                    });
-                }
-            },
+                    let msg = message.read().trim().to_string();
+                    if msg.is_empty() {
+                        return;
+                    }
 
-            input {
-                class: "flex-1 p-2 border border-gray-300 rounded",
-                placeholder: "Type your message...",
-                value: "{message}",
-                oninput: move |e| {e.prevent_default(); message.set(e.value().clone())},
-            },
-
-            IconButton {
-                alt: "Send".to_string(),
-                icon,
-                ty: "submit".to_string(),
-            }
-
-            { if context.reply.read().is_some() || context.edit.read().1.is_some() { rsx! {
-                IconButton {
-                    alt: "Close".to_string(),
-                    ty: "button".to_string(),
-                    icon: asset!("/assets/icons/close.svg"),
-                    onclick: move |_| {
-                        context.reply.set(None);
+                    if context.edit.read().1.is_some() {
+                        let edit_uuid = context.edit.read().1.unwrap();
                         context.edit.set((false, None));
-                    },
+                        spawn(async move {
+                            if let Err(e) = edit_message(edit_uuid, msg).await {
+                                error!("Failed to edit message: {}", e);
+                            }
+                        });
+                        message.set(String::new());
+                    } else {
+                        spawn(async move {
+                            let reply = *context.reply.read();
+                            if let Err(e) = send_message(uuid, msg, reply).await {
+                                error!("Failed to send message: {}", e);
+                            }
+                            message.set(String::new());
+                            context.reply.set(None);
+                        });
+                    }
+                },
+
+                input {
+                    class: "flex-1 px-2 border border-gray-300 rounded",
+                    placeholder: "Type your message...",
+                    value: "{message}",
+                    oninput: move |e| {e.prevent_default(); message.set(e.value().clone())},
+                },
+
+                IconButton {
+                    alt: "Send".to_string(),
+                    icon,
+                    ty: "submit".to_string(),
                 }
-            } } else { rsx! {} } }
+
+                { if context.reply.read().is_some() || context.edit.read().1.is_some() { rsx! {
+                    IconButton {
+                        alt: "Close".to_string(),
+                        ty: "button".to_string(),
+                        icon: asset!("/assets/icons/close.svg"),
+                        onclick: move |_| {
+                            context.reply.set(None);
+                            context.edit.set((false, None));
+                        },
+                    }
+                } } else { rsx! {} } }
+            }
         }
     }
 }
