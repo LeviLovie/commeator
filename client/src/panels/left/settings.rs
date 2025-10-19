@@ -1,24 +1,35 @@
 use dioxus::prelude::*;
 
-use crate::pages::{Item, PanelContext, RightPanel, SettingsPage};
+use crate::{
+    Route,
+    components::{Header, HeaderText, Item},
+};
 
 #[component]
-pub fn Settings() -> Element {
-    let buttons = [("Account", SettingsPage::Account)];
+pub fn LeftSettings() -> Element {
+    let navigator = navigator();
+
+    let buttons = [("Account", Route::ViewSettingsAccount)];
 
     rsx! {
         div {
-            { buttons.iter().map(|(name, page)| {
+            Header {
+                left: rsx! {
+                    HeaderText { text: "Settings" }
+                },
+                center: rsx! {},
+                right: rsx! {},
+            }
+
+            { buttons.iter().map(|(name, route)| {
                 let name = name.to_string();
-                let page = *page;
+                let route = route.clone();
                 rsx! {
                     Item {
                         button {
                             class: "text-left p-2 w-full h-full hover:bg-gray-300 cursor-pointer",
                             onclick: move |_| {
-                                let mut context = use_context::<PanelContext>();
-                                context.settings_page.set(page);
-                                context.right.set(RightPanel::Settings);
+                                navigator.push(route.clone());
                             },
 
                             "{name}"

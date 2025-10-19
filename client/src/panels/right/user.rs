@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use crate::{
     Route,
     backend::{get_username, verify_private_chat},
-    components::{Avatar, Header, HeaderButton, HeaderText, IconButton, Spinner},
+    components::{Avatar, Header, HeaderButtonBack, HeaderText, Spinner},
 };
 use utils::data::UserInfo;
 
@@ -57,16 +57,7 @@ pub fn RightUser(username: String) -> Element {
             class: "flex flex-col h-screen",
 
             Header {
-                left: rsx! { HeaderButton {
-                    IconButton {
-                        alt: "back",
-                        ty: "button",
-                        icon: asset!("assets/icons/back.svg"),
-                        onclick: move |_| {
-                            navigator.go_back();
-                        },
-                    }
-                } },
+                left: rsx! { HeaderButtonBack { } },
                 center: rsx! { HeaderText {
                     text: "{user.username}"
                 } },

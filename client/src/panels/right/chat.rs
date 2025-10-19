@@ -5,7 +5,7 @@ use crate::{
     backend::{
         chat_users, delete_message, edit_message, get_chat, list_messages, my_user, send_message,
     },
-    components::{Avatar, CenteredText, Header, HeaderButton, HeaderText, IconButton, Spinner},
+    components::{Avatar, Header, HeaderButtonBack, HeaderText, IconButton, Spinner},
     panels::{LayoutContext, PanelLayout},
     verify_uuid,
 };
@@ -140,16 +140,7 @@ pub fn RightChat(uuid: String) -> Element {
             class: "flex flex-col h-screen",
 
             Header {
-                left: rsx! { HeaderButton {
-                    IconButton {
-                        alt: "back",
-                        ty: "button",
-                        icon: asset!("assets/icons/back.svg"),
-                        onclick: move |_| {
-                            navigator.go_back();
-                        },
-                    }
-                } },
+                left: rsx! { HeaderButtonBack { } },
                 center: rsx! { HeaderText {
                     text: "{chat.name}"
                 } },

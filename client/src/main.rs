@@ -21,21 +21,26 @@ enum Route {
         #[route("/")]
         ViewUsers,
 
-        #[route("/u/:username")]
-        #[end_nest]
+        #[route("/:username")]
         ViewUser { username: String },
 
+    #[end_nest]
     #[nest("/c")]
         #[route("/")]
         ViewChats,
 
-        #[route("/c/:uuid")]
-        #[end_nest]
+        #[route("/:uuid")]
         ViewChat { uuid: String },
 
-    #[route("/s")]
-    ViewSettings,
+    #[end_nest]
+    #[nest("/s")]
+        #[route("/")]
+        ViewSettings,
 
+        #[route("/account")]
+        ViewSettingsAccount,
+
+    #[end_nest]
     #[nest("/a")]
         #[route("/callback")]
         AuthCallback,

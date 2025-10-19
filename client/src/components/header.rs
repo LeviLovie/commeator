@@ -1,5 +1,7 @@
 use dioxus::prelude::*;
 
+use crate::components::IconButton;
+
 #[component]
 pub fn Header(left: Element, center: Element, right: Element) -> Element {
     rsx! {
@@ -29,6 +31,22 @@ pub fn HeaderButton(children: Element) -> Element {
         div {
             class: "w-8 h-8 flex items-center justify-center",
             {children}
+        }
+    }
+}
+
+#[component]
+pub fn HeaderButtonBack(children: Element) -> Element {
+    let navigator = navigator();
+
+    rsx! {
+        IconButton {
+            alt: "back",
+            ty: "button",
+            icon: asset!("assets/icons/back.svg"),
+            onclick: move |_| {
+                navigator.go_back();
+            },
         }
     }
 }
