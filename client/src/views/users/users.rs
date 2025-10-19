@@ -13,6 +13,7 @@ pub fn ViewUsers() -> Element {
 
     rsx! {
         View {
+            view_right: false,
             left: rsx! { LeftUsers {} },
             right: rsx! { CenteredInvisible {
                 CenteredText {

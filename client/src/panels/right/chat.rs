@@ -36,7 +36,6 @@ pub struct ChatInterContext {
 #[component]
 pub fn RightChat(uuid: String) -> Element {
     let uuid = verify_uuid!(uuid);
-    let navigator = navigator();
     // let centrifugo = use_context::<CentrifugoContext>();
 
     let mut state = use_signal(|| ChatState {
@@ -435,7 +434,7 @@ pub fn MessageAvatar(email_hash: String, tint: bool) -> Element {
 #[component]
 pub fn MessageBox(uuid: Uuid) -> Element {
     let mut context = use_context::<ChatInterContext>();
-    let mut message = context.message.clone();
+    let mut message = context.message;
 
     let icon = if context.edit.read().1.is_some() {
         asset!("/assets/icons/edit.svg")

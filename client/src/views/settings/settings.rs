@@ -13,6 +13,7 @@ pub fn ViewSettings() -> Element {
 
     rsx! {
         View {
+            view_right: false,
             left: rsx! { LeftSettings {} },
             right: rsx! { CenteredInvisible {
                 CenteredText {

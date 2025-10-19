@@ -1,9 +1,7 @@
 use dioxus::prelude::*;
 
 use crate::{
-    Route,
-    backend::{ApiData, list_chats, use_api_data},
-    components::{Header, HeaderButton, HeaderText, Item, SmallIconButton, Spinner},
+    backend::{list_chats, use_api_data, ApiData}, components::{Header, HeaderButton, HeaderText, Item, SmallIconButton, Spinner}, Route
 };
 use utils::data::ChatInfo;
 

@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 use super::View;
-use crate::{Route, components::Spinner, verify_user};
+use crate::{components::Spinner, verify_user, Route};
 
 #[component]
 pub fn ViewHome() -> Element {
@@ -14,6 +14,7 @@ pub fn ViewHome() -> Element {
 
     rsx! {
         View {
+            view_right: false,
             left: rsx! { Spinner {} },
             right: rsx! { Spinner {} }
         }

@@ -12,6 +12,7 @@ pub fn ViewUser(username: String) -> Element {
 
     rsx! {
         View {
+            view_right: true,
             left: rsx! { LeftUsers {} },
             right: rsx! { RightUser { username } },
         }

@@ -13,6 +13,7 @@ pub fn ViewChats() -> Element {
 
     rsx! {
         View {
+            view_right: false,
             left: rsx! { LeftChats {} },
             right: rsx! { CenteredInvisible {
                 CenteredText {

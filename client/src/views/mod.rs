@@ -13,17 +13,15 @@ use dioxus::prelude::*;
 use crate::{
     centrifugo::{CentrifugoClient, CentrifugoContext},
     components::NavBar,
-    panels::{LayoutContext, MobileState, PanelLayout},
+    panels::{LayoutContext, PanelLayout},
 };
 use std::rc::Rc;
 
 #[component]
-pub fn View(left: Element, right: Element) -> Element {
+pub fn View(view_right: bool, left: Element, right: Element) -> Element {
     let default_layout = use_signal(|| PanelLayout::Desktop);
-    let default_mobile_state = use_signal(MobileState::default);
     use_context_provider(|| LayoutContext {
         layout: default_layout,
-        mobile_state: default_mobile_state,
     });
 
     let centrifugo = Rc::new(CentrifugoClient::new());
@@ -60,7 +58,6 @@ pub fn View(left: Element, right: Element) -> Element {
     });
 
     let layout = use_context::<LayoutContext>().layout;
-    let mobile_state = use_context::<LayoutContext>().mobile_state;
 
     match *layout.read() {
         PanelLayout::Desktop => rsx! {
@@ -88,8 +85,8 @@ pub fn View(left: Element, right: Element) -> Element {
             div {
                 class: "flex flex-col h-[100dvh]",
 
-                match *mobile_state.read() {
-                    MobileState::Left => rsx! {
+                match view_right {
+                    false => rsx! {
                         div {
                             class: "flex-1 overflow-y-auto",
                             {left}
@@ -99,7 +96,7 @@ pub fn View(left: Element, right: Element) -> Element {
                             NavBar {}
                         }
                     },
-                    MobileState::Right => rsx! {
+                    true => rsx! {
                         div {
                             class: "flex-1 overflow-y-auto",
                             {right}

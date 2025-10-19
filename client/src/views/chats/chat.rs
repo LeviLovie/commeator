@@ -12,6 +12,7 @@ pub fn ViewChat(uuid: String) -> Element {
 
     rsx! {
         View {
+            view_right: true,
             left: rsx! { LeftChats {} },
             right: rsx! { RightChat { uuid } },
         }

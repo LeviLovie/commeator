@@ -1,9 +1,7 @@
 use dioxus::prelude::*;
 
 use crate::{
-    Route,
-    backend::{ApiData, list_users, use_api_data},
-    components::{Avatar, Header, HeaderText, Item, Spinner},
+    backend::{list_users, use_api_data, ApiData}, components::{Avatar, Header, HeaderText, Item, Spinner}, Route
 };
 use utils::data::UserInfo;
 

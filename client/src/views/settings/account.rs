@@ -12,6 +12,7 @@ pub fn ViewSettingsAccount() -> Element {
 
     rsx! {
         View {
+            view_right: true,
             left: rsx! { LeftSettings {} },
             right: rsx! { SettingsAccount {} },
         }
