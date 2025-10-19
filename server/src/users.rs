@@ -12,8 +12,7 @@ use crate::{db, schema::*, verify_jwt, verify_kratos_cookie, AppError};
 use utils::{
     data::UserInfo,
     requests::{
-        ChatUsersRequest, CheckUserResponse, GetUserRequest, GetUserResponse, ListUsersRequest,
-        ListUsersResponse, SetupUserRequest, SetupUserResponse,
+        ChatUsersRequest, CheckUserResponse, GetUserRequest, GetUserResponse, GetUsernameRequest, ListUsersRequest, ListUsersResponse, SetupUserRequest, SetupUserResponse
     },
 };
 
@@ -77,6 +76,31 @@ pub async fn get_user(
 
     let user_model: users::Model = Users::find()
         .filter(users::Column::Uuid.eq(body.0))
+        .one(db)
+        .await
+        .context("Failed to query user from database")?
+        .ok_or_else(|| anyhow!("User not found"))?;
+
+    let user = UserInfo {
+        uuid: user_model.uuid,
+        email_hash: user_model.email_hash,
+        username: user_model.username,
+        nickname: user_model.nickname,
+    };
+
+    let response = GetUserResponse(user);
+    Ok(Json(response).into_response())
+}
+
+pub async fn get_username(
+    headers: HeaderMap,
+    Json(body): Json<GetUsernameRequest>,
+) -> Result<Response, AppError> {
+    let _ = verify_jwt(&headers).await?;
+    let db = db().await;
+
+    let user_model: users::Model = Users::find()
+        .filter(users::Column::Username.eq(body.0))
         .one(db)
         .await
         .context("Failed to query user from database")?

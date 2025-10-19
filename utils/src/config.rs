@@ -99,6 +99,7 @@ pub mod endpoints {
         pub const IG_CHECK: &str = "/users/check";
         pub const IG_ME: &str = "/users/me";
         pub const IP_GET: &str = "/users/get";
+        pub const IP_NAME: &str = "/users/name";
         pub const IP_SETUP: &str = "/users/setup";
         pub const IP_LIST: &str = "/users/list";
         pub const IP_CHAT: &str = "/users/chat";
