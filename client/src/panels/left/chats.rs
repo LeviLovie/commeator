@@ -1,9 +1,9 @@
 use dioxus::prelude::*;
 
 use crate::{
-    backend::list_chats,
-    components::{SmallIconButton, Spinner},
-    pages::{ApiData, Item, PanelContext, RightPanel, panels::api_data::use_api_data},
+    Route,
+    backend::{ApiData, list_chats, use_api_data},
+    components::{Header, HeaderButton, HeaderText, Item, SmallIconButton, Spinner},
 };
 use utils::data::ChatInfo;
 
@@ -13,12 +13,14 @@ pub struct ChatsContext {
 }
 
 #[component]
-pub fn Chats() -> Element {
+pub fn LeftChats() -> Element {
     {
         let chats = use_api_data(|| async { list_chats().await });
         let context = ChatsContext { chats };
         use_context_provider(|| context.clone());
     }
+
+    let navigator = navigator();
 
     let context = use_context::<ChatsContext>();
     let chats = context.chats.read();
@@ -29,22 +31,25 @@ pub fn Chats() -> Element {
 
     rsx! {
         div {
-            div {
-                class: "flex justify-between p-2",
-
-                p {
-                    class: "text-m p-0",
-                    "Chats"
-                }
-
-                SmallIconButton {
-                    alt: "New group".to_string(),
-                    icon: asset!("/assets/icons/add.svg"),
-                    ty: "button".to_string(),
-                    onclick: move |_| {
-                        use_context::<PanelContext>().right.set(RightPanel::NewGroup);
-                    },
-                }
+            Header {
+                left: rsx! {
+                    HeaderText { text: "Chats" }
+                },
+                center: rsx! {},
+                right: rsx! {
+                    HeaderButton {
+                        SmallIconButton {
+                            alt: "New group".to_string(),
+                            icon: asset!("/assets/icons/add.svg"),
+                            ty: "button".to_string(),
+                            onclick: move |_| {
+                                info!("Create group clicked");
+                                // TODO
+                                // navigator.push(Route::ViewCreateGroup);
+                            },
+                        }
+                    }
+                },
             }
 
             { chats.iter().map(|chat| {
@@ -54,7 +59,7 @@ pub fn Chats() -> Element {
                         button {
                             class: "text-left p-2 w-full h-full hover:bg-gray-300 cursor-pointer",
                             onclick: move |_| {
-                                use_context::<PanelContext>().right.set(RightPanel::Chat(uuid));
+                                navigator.push(Route::ViewChat { uuid: uuid.to_string() });
                             },
 
                             "{chat.name}"

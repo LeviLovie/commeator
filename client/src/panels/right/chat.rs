@@ -5,13 +5,11 @@ use crate::{
     backend::{
         chat_users, delete_message, edit_message, get_chat, list_messages, my_user, send_message,
     },
-    components::{Avatar, IconButton, Spinner},
-    pages::{CentrifugoContext, LayoutContext, PanelLayout, panels::right::header::Header},
+    components::{Avatar, CenteredText, Header, HeaderButton, HeaderText, IconButton, Spinner},
+    panels::{LayoutContext, PanelLayout},
+    verify_uuid,
 };
-use utils::{
-    data::{ChatInfo, MessageInfo, UserInfo},
-    updates::Update,
-};
+use utils::data::{ChatInfo, MessageInfo, UserInfo};
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct ChatState {
@@ -30,14 +28,17 @@ pub struct ChatInterContext {
     reply: Signal<Option<Uuid>>,
     edit: Signal<(bool, Option<Uuid>)>,
 }
-
-pub type ChatUpdatesSignal = Signal<Vec<(Uuid, Update)>>;
-#[derive(Clone, Debug)]
-pub struct ChatUpdatesContext(pub ChatUpdatesSignal);
+//
+// pub type ChatUpdatesSignal = Signal<Vec<(Uuid, Update)>>;
+// #[derive(Clone, Debug)]
+// pub struct ChatUpdatesContext(pub ChatUpdatesSignal);
 
 #[component]
-pub fn Chat(uuid: Uuid) -> Element {
-    let centrifugo = use_context::<CentrifugoContext>();
+pub fn RightChat(uuid: String) -> Element {
+    let uuid = verify_uuid!(uuid);
+    let navigator = navigator();
+    // let centrifugo = use_context::<CentrifugoContext>();
+
     let mut state = use_signal(|| ChatState {
         uuid: None,
         chat: None,
@@ -59,72 +60,6 @@ pub fn Chat(uuid: Uuid) -> Element {
         edit: default_edit,
     });
     let mut context = use_context::<ChatInterContext>();
-
-    use_effect({
-        let client = centrifugo.client.clone();
-        let mut updates = use_context::<ChatUpdatesContext>();
-        move || {
-            let client = client.clone();
-            spawn(async move {
-                let _ = client
-                    .subscribe(&format!("chat_{}", uuid), move |update| {
-                        updates.0.push((uuid, update));
-                    })
-                    .await;
-            });
-        }
-    });
-
-    use_effect({
-        let updates = use_context::<ChatUpdatesContext>();
-        let mut state = state;
-        move || {
-            let mut updates = updates.0.read().clone();
-            if updates.is_empty() {
-                return;
-            }
-            let mut state_guard = state.write();
-            for (uuid, update) in updates.iter() {
-                if uuid != &state_guard.uuid.unwrap_or_default() {
-                    continue;
-                }
-                match update {
-                    Update::NewMessage(message) => {
-                        if state_guard.messages.is_some()
-                            && !state_guard
-                                .messages
-                                .as_ref()
-                                .unwrap()
-                                .iter()
-                                .any(|m| m.uuid == message.uuid)
-                        {
-                            state_guard.messages.as_mut().unwrap().push(message.clone());
-                        }
-                    }
-                    Update::DeleteMessage(payload) => {
-                        if state_guard.messages.is_some() {
-                            state_guard
-                                .messages
-                                .as_mut()
-                                .unwrap()
-                                .retain(|m| m.uuid != payload.message_uuid);
-                        }
-                    }
-                    Update::UpdateMessage(payload) => {
-                        if let Some(messages) = state_guard.messages.as_mut()
-                            && let Some(message) =
-                                messages.iter_mut().find(|m| m.uuid == payload.uuid)
-                        {
-                            message.content = payload.new_content.clone();
-                            message.edited_at = Some(payload.edited_at);
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            updates.clear();
-        }
-    });
 
     use_effect({
         let update = if let Some(current_uuid) = state.read().uuid {
@@ -195,16 +130,28 @@ pub fn Chat(uuid: Uuid) -> Element {
         return rsx! { Spinner {} };
     }
 
-    let chat = state.chat.as_ref().unwrap().clone();
+    let chat = state.chat.as_ref().unwrap();
     let messages = state.messages.as_ref().unwrap();
 
     rsx! {
         div {
             class: "flex flex-col h-screen",
 
-            div {
-                class: "flex-none",
-                Header { title: "{chat.name}" }
+            Header {
+                left: rsx! { HeaderButton {
+                    IconButton {
+                        alt: "back",
+                        ty: "button",
+                        icon: asset!("assets/icons/back.svg"),
+                        onclick: move |_| {
+                            navigator.go_back();
+                        },
+                    }
+                } },
+                center: rsx! { HeaderText {
+                    text: "{chat.name}"
+                } },
+                right: rsx! {}
             }
 
             div {

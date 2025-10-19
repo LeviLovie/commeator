@@ -1,17 +1,21 @@
+mod chats;
 mod home;
 mod settings;
 mod users;
-mod chats;
 
-pub use home::*;
-pub use users::*;
-pub use settings::*;
 pub use chats::*;
+pub use home::*;
+pub use settings::*;
+pub use users::*;
 
 use dioxus::prelude::*;
 
+use crate::{
+    centrifugo::{CentrifugoClient, CentrifugoContext},
+    components::NavBar,
+    panels::{LayoutContext, MobileState, PanelLayout},
+};
 use std::rc::Rc;
-use crate::{centrifugo::{CentrifugoClient, CentrifugoContext}, components::NavBar, panels::{LayoutContext, MobileState, PanelLayout}};
 
 #[component]
 pub fn View(left: Element, right: Element) -> Element {

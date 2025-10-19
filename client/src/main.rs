@@ -2,6 +2,7 @@ mod auth;
 mod backend;
 mod centrifugo;
 mod components;
+mod macros;
 mod panels;
 mod views;
 
@@ -16,11 +17,16 @@ enum Route {
     #[route("/")]
     ViewHome,
 
-    #[route("/u")]
+    #[route("/u/l")]
     ViewUsers,
 
-    #[route("/c")]
-    ViewChats,
+    #[nest("/c")]
+        #[route("/")]
+        ViewChats,
+
+        #[route("/c/:uuid")]
+        #[end_nest]
+        ViewChat { uuid: String },
 
     #[route("/s")]
     ViewSettings,
@@ -36,6 +42,7 @@ enum Route {
         AuthLogIn { flow: String },
 
         #[route("/error?:id")]
+        #[end_nest]
         AuthError { id: String },
 }
 
