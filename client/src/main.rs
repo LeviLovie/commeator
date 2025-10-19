@@ -1,20 +1,31 @@
+mod auth;
 mod backend;
 mod centrifugo;
 mod components;
-mod pages;
-mod verify_user_jwt;
+mod panels;
+mod views;
 
 use dioxus::{logger::tracing::Level, prelude::*};
 
-use pages::{AuthCallback, AuthError, AuthLogIn, AuthProfileSetup, Home};
+use auth::*;
+use views::*;
 
 #[derive(Clone, Routable, PartialEq)]
 #[rustfmt::skip]
 enum Route {
     #[route("/")]
-    Home,
+    ViewHome,
 
-    #[nest("/login")]
+    #[route("/u")]
+    ViewUsers,
+
+    #[route("/c")]
+    ViewChats,
+
+    #[route("/s")]
+    ViewSettings,
+
+    #[nest("/a")]
         #[route("/callback")]
         AuthCallback,
 

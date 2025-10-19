@@ -1,20 +1,17 @@
 use dioxus::prelude::*;
 
-use crate::{
-    components::IconButton,
-    pages::{LeftPanel, PanelContext, RightPanel},
-};
+use crate::{components::IconButton, Route};
 
 #[component]
 pub fn NavBar() -> Element {
-    let panel_context = use_context::<PanelContext>();
+    let navigator = navigator();
 
     let links = [
-        ("chats", LeftPanel::Chats, asset!("assets/icons/chats.svg")),
-        ("users", LeftPanel::Users, asset!("assets/icons/users.svg")),
+        ("chats", Route::ViewChats, asset!("assets/icons/chats.svg")),
+        ("users", Route::ViewUsers, asset!("assets/icons/users.svg")),
         (
             "settings",
-            LeftPanel::Settings,
+            Route::ViewSettings,
             asset!("assets/icons/settings.svg"),
         ),
     ];
@@ -23,10 +20,9 @@ pub fn NavBar() -> Element {
         div {
             class: "mt-auto p-2 border-t border-gray-300 flex justify-around",
 
-            { links.iter().map(|(id, panel, icon)| {
-                let mut panel_context = panel_context.clone();
-                let panel_clone = panel.clone();
+            { links.iter().map(|(id, route, icon)| {
                 let id = id.to_string();
+                let route = route.clone();
                 let icon = icon.to_string();
                 rsx! {
                     IconButton {
@@ -34,8 +30,7 @@ pub fn NavBar() -> Element {
                         icon: "{icon}",
                         ty: "button".to_string(),
                         onclick: move |_| {
-                            panel_context.left.set(panel_clone.clone());
-                            panel_context.right.set(RightPanel::Empty);
+                            navigator.push(route.clone());
                         },
                     }
                 }

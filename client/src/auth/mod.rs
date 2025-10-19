@@ -2,6 +2,7 @@ mod callback;
 mod error;
 mod login;
 mod profile_setup;
+pub mod verify_user;
 
 pub use callback::AuthCallback;
 pub use error::AuthError;

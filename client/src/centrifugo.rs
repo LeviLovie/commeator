@@ -8,6 +8,11 @@ use gloo_net::websocket::{Message, futures::WebSocket};
 use crate::backend::get_centrifugo_jwt;
 use utils::{config::wss_base_url, updates::Update};
 
+#[derive(Clone)]
+pub struct CentrifugoContext {
+    pub client: Rc<CentrifugoClient>,
+}
+
 type Subscriber = Rc<RefCell<dyn FnMut(Update)>>;
 
 pub struct CentrifugoClient {
