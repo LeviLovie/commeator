@@ -3,8 +3,12 @@ use utils::data::UserInfo;
 use uuid::Uuid;
 
 use crate::{
+    Route,
     backend::{list_users, my_user, new_group, use_api_data},
-    components::{Avatar, CenteredForm, Header, HeaderButtonBack, HeaderText, IconButton, NotFullHeightSpinner}, Route,
+    components::{
+        Avatar, CenteredForm, Header, HeaderButtonBack, HeaderText, IconButton,
+        NotFullHeightSpinner,
+    },
 };
 
 #[derive(Clone, PartialEq, Debug)]
@@ -33,10 +37,8 @@ pub fn RightNewGroup() -> Element {
 
                 if *finalized.read() {
                     spawn(async move {
-                        info!("Creating new group...");
                         let title_guard = title.read();
                         let title: String = title_guard.1.as_ref().unwrap().clone();
-                        info!("Group title: {}", title);
 
                         let users_guard = users.read();
                         let users = users_guard.1.clone();
@@ -75,7 +77,9 @@ pub fn RightNewGroup() -> Element {
 
     rsx! {
         Header {
-            left: rsx! { HeaderButtonBack {} },
+            left: rsx! { HeaderButtonBack {
+                route: Route::ViewChats,
+            } },
             center: rsx! { HeaderText {
                 text: "New Group"
             } },

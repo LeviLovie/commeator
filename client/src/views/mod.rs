@@ -5,9 +5,9 @@ mod settings;
 mod users;
 
 pub use chats::*;
+pub use groups::*;
 pub use home::*;
 pub use settings::*;
-pub use groups::*;
 pub use users::*;
 
 use dioxus::prelude::*;

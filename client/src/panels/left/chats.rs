@@ -1,7 +1,9 @@
 use dioxus::prelude::*;
 
 use crate::{
-    backend::{list_chats, use_api_data, ApiData}, components::{Header, HeaderButton, HeaderText, Item, SmallIconButton, Spinner}, Route
+    Route,
+    backend::{ApiData, list_chats, use_api_data},
+    components::{Header, HeaderButton, HeaderText, Item, SmallIconButton, Spinner},
 };
 use utils::data::ChatInfo;
 
@@ -40,7 +42,7 @@ pub fn LeftChats() -> Element {
                         icon: asset!("/assets/icons/add.svg"),
                         ty: "button".to_string(),
                         onclick: move |_| {
-                            navigator.push(Route::ViewNewGroup);
+                            navigator.replace(Route::ViewNewGroup);
                         },
                     }
                 }
@@ -54,7 +56,7 @@ pub fn LeftChats() -> Element {
                     button {
                         class: "text-left p-2 w-full h-full hover:bg-gray-300 cursor-pointer",
                         onclick: move |_| {
-                            navigator.push(Route::ViewChat { uuid: uuid.to_string() });
+                            navigator.replace(Route::ViewChat { uuid: uuid.to_string() });
                         },
 
                         "{chat.name}"

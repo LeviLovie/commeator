@@ -1,7 +1,9 @@
 use dioxus::prelude::*;
 
 use crate::{
-    backend::{list_users, use_api_data, ApiData}, components::{Avatar, Header, HeaderText, Item, Spinner}, Route
+    Route,
+    backend::{ApiData, list_users, use_api_data},
+    components::{Avatar, Header, HeaderText, Item, Spinner},
 };
 use utils::data::UserInfo;
 
@@ -44,7 +46,7 @@ pub fn LeftUsers() -> Element {
                         class: "flex flex-row text-left p-2 w-full h-full hover:bg-gray-300 cursor-pointer",
                         onclick: move |_| {
                             let username = username.clone();
-                            navigator.push(Route::ViewUser { username });
+                            navigator.replace(Route::ViewUser { username });
                         },
 
                         div {

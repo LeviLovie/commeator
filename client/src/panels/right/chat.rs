@@ -5,11 +5,15 @@ use crate::{
     backend::{
         chat_users, delete_message, edit_message, get_chat, list_messages, my_user, send_message,
     },
+    centrifugo::CentrifugoContext,
     components::{Avatar, Header, HeaderButtonBack, HeaderText, IconButton, Spinner},
     panels::{LayoutContext, PanelLayout},
-    verify_uuid,
+    verify_uuid, Route,
 };
-use utils::data::{ChatInfo, MessageInfo, UserInfo};
+use utils::{
+    data::{ChatInfo, MessageInfo, UserInfo},
+    updates::Update,
+};
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct ChatState {
@@ -28,15 +32,13 @@ pub struct ChatInterContext {
     reply: Signal<Option<Uuid>>,
     edit: Signal<(bool, Option<Uuid>)>,
 }
-//
-// pub type ChatUpdatesSignal = Signal<Vec<(Uuid, Update)>>;
-// #[derive(Clone, Debug)]
-// pub struct ChatUpdatesContext(pub ChatUpdatesSignal);
+
+pub static CHAT_UPDATES: GlobalSignal<Vec<(Uuid, Update)>> = GlobalSignal::new(Vec::new);
 
 #[component]
 pub fn RightChat(uuid: String) -> Element {
     let uuid = verify_uuid!(uuid);
-    // let centrifugo = use_context::<CentrifugoContext>();
+    let centrifugo = use_context::<CentrifugoContext>();
 
     let mut state = use_signal(|| ChatState {
         uuid: None,
@@ -61,6 +63,63 @@ pub fn RightChat(uuid: String) -> Element {
         });
     };
     let mut context = use_context::<ChatInterContext>();
+
+    spawn(async move {
+        let client = centrifugo.client.clone();
+        if let Err(e) = client
+            .subscribe(&format!("chat_{}", uuid), move |update| {
+                CHAT_UPDATES.write().push((uuid, update));
+            })
+            .await {
+            error!("Failed to subscribe to chat updates: {}", e);
+        }
+    });
+
+    spawn(async move {
+        loop {
+            gloo_timers::future::TimeoutFuture::new(100).await;
+
+            let updates = CHAT_UPDATES.read().clone();
+            if !updates.is_empty() {
+                CHAT_UPDATES.write().clear();
+
+                let mut state_guard = state.write();
+                for (update_uuid, update) in updates.iter() {
+                    if update_uuid != &state_guard.uuid.unwrap_or_default() {
+                        continue;
+                    }
+
+                    match update {
+                        Update::NewMessage(message) => {
+                            if let Some(messages) = state_guard.messages.as_mut()
+                                && !messages.iter().any(|m| m.uuid == message.uuid)
+                            {
+                                messages.push(message.clone());
+                            }
+                        }
+
+                        Update::DeleteMessage(payload) => {
+                            if let Some(messages) = state_guard.messages.as_mut() {
+                                messages.retain(|m| m.uuid != payload.message_uuid);
+                            }
+                        }
+
+                        Update::UpdateMessage(payload) => {
+                            if let Some(messages) = state_guard.messages.as_mut()
+                                && let Some(message) =
+                                    messages.iter_mut().find(|m| m.uuid == payload.uuid)
+                            {
+                                message.content = payload.new_content.clone();
+                                message.edited_at = Some(payload.edited_at);
+                            }
+                        }
+
+                        _ => {}
+                    }
+                }
+            }
+        }
+    });
 
     use_effect({
         let update = if let Some(current_uuid) = state.read().uuid {
@@ -139,7 +198,9 @@ pub fn RightChat(uuid: String) -> Element {
             class: "flex flex-col h-full",
 
             Header {
-                left: rsx! { HeaderButtonBack { } },
+                left: rsx! { HeaderButtonBack {
+                    route: Route::ViewChats,
+                } },
                 center: rsx! { HeaderText {
                     text: "{chat.name}"
                 } },

@@ -54,7 +54,9 @@ pub fn RightUser(username: String) -> Element {
 
     rsx! {
         Header {
-            left: rsx! { HeaderButtonBack { } },
+            left: rsx! { HeaderButtonBack {
+                route: Route::ViewUsers,
+            } },
             center: rsx! { HeaderText {
                 text: "{user.username}"
             } },
@@ -90,7 +92,7 @@ pub fn RightUser(username: String) -> Element {
                         spawn(async move {
                             match verify_private_chat(user_uuid).await {
                                 Ok(chat_uuid) => {
-                                    navigator.push(Route::ViewChat { uuid: chat_uuid.to_string() });
+                                    navigator.replace(Route::ViewChat { uuid: chat_uuid.to_string() });
                                 }
                                 Err(e) => {
                                     error!("Failed to verify or create private chat: {}", e);

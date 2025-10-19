@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::components::IconButton;
+use crate::{components::IconButton, Route};
 
 #[component]
 pub fn Header(left: Element, center: Element, right: Element) -> Element {
@@ -36,7 +36,7 @@ pub fn HeaderButton(children: Element) -> Element {
 }
 
 #[component]
-pub fn HeaderButtonBack(children: Element) -> Element {
+pub fn HeaderButtonBack(route: Route) -> Element {
     let navigator = navigator();
 
     rsx! {
@@ -45,7 +45,7 @@ pub fn HeaderButtonBack(children: Element) -> Element {
             ty: "button",
             icon: asset!("assets/icons/back.svg"),
             onclick: move |_| {
-                navigator.go_back();
+                navigator.replace(route.clone());
             },
         }
     }

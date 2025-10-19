@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 use super::View;
-use crate::{components::Spinner, verify_user, Route};
+use crate::{Route, components::Spinner, verify_user};
 
 #[component]
 pub fn ViewHome() -> Element {

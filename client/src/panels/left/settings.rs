@@ -28,7 +28,7 @@ pub fn LeftSettings() -> Element {
                     button {
                         class: "text-left p-2 w-full h-full hover:bg-gray-300 cursor-pointer",
                         onclick: move |_| {
-                            navigator.push(route.clone());
+                            navigator.replace(route.clone());
                         },
 
                         "{name}"

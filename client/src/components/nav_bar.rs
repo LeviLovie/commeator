@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::{Route, components::IconButton};
+use crate::{components::IconButton, Route};
 
 #[component]
 pub fn NavBar() -> Element {
@@ -30,7 +30,7 @@ pub fn NavBar() -> Element {
                         icon: "{icon}",
                         ty: "button".to_string(),
                         onclick: move |_| {
-                            navigator.push(route.clone());
+                            navigator.replace(route.clone());
                         },
                     }
                 }

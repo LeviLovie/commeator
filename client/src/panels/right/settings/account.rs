@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use crate::{
     backend::{my_user, use_api_data},
     components::{Header, HeaderButtonBack, HeaderText, LogOut, Spinner},
-    verify_user,
+    verify_user, Route,
 };
 
 #[component]
@@ -20,7 +20,9 @@ pub fn SettingsAccount() -> Element {
 
     rsx! {
         Header {
-            left: rsx! { HeaderButtonBack { } },
+            left: rsx! { HeaderButtonBack {
+                route: Route::ViewSettings,
+            } },
             center: rsx! { HeaderText {
                 text: "Account"
             } },

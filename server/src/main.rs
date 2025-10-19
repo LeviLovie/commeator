@@ -99,6 +99,5 @@ async fn main() {
     app = app.layer(cors);
 
     let listener = TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    tracing::info!("Starting server");
     axum::serve(listener, app).await.unwrap();
 }
