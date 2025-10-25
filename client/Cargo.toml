@@ -5,29 +5,38 @@ authors = ["Levi Lovie <leviiloviee@gmail.com>"]
 edition = "2024"
 
 [dependencies]
-utils = { path = "../utils", features = ["client"] }
 anyhow = "1.0.100"
 chrono = { version = "0.4.42", features = ["serde"] }
 dioxus = { version = "0.7.0-rc.1", features = ["router"] }
-gloo-net = { version = "0.6.0", features = ["websocket"], optional = true }
-gloo-timers = { version = "0.3.0", features = ["futures"] }
+futures = "0.3.31"
 md5 = "0.8.0"
 serde = { version = "1.0.225", features = ["derive"] }
 serde_json = "1.0.145"
+tiny_http = "0.12.0"
+utils = { path = "../utils", features = ["client"] }
+uuid = { version = "1.18.1", features = ["serde", "v4", "js"] }
 wasm-bindgen-futures = "0.4.53"
 web-sys = "0.3.80"
-reqwest = { version = "0.12.24", optional = true }
-uuid = { version = "1.18.1", features = ["serde", "v4", "js"] }
-futures = "0.3.31"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+dioxus-desktop = "0.7.0-rc.1"
+dirs = "6.0.0"
+open = "5.3.2"
+reqwest = { version = "0.12.24", features = ["cookies"] }
+reqwest-websocket = "0.5.1"
+tokio = { version = "1.48.0", features = ["full"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+gloo-net = { version = "0.6.0", features = ["websocket"] }
 
 [build-dependencies]
 dotenvy = "0.15.7"
 
 [features]
 default = ["web"]
-web = ["dioxus/web", "dep:gloo-net"]
-desktop = ["dioxus/desktop", "dep:reqwest"]
-mobile = ["dioxus/mobile", "dep:reqwest"]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]
+mobile = ["dioxus/mobile"]
 
 [profile.wasm-dev]
 inherits = "dev"

@@ -5,6 +5,16 @@ help:
 web:
     cd client && dx serve --web --port=8000
 
+# Run the macos client
+macos:
+    open ./client/target/dx/commeator/debug/macos/Commeator.app
+
+# Build the macos client
+b_macos:
+    cd client && \
+        dx build --macos
+    cp config/macos/Info.plist client/target/dx/commeator/debug/macos/Commeator.app/Contents/Info.plist
+
 # Run the server locally
 server:
     cd server && cargo run

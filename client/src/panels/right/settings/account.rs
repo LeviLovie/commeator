@@ -9,7 +9,7 @@ use crate::{
 
 #[component]
 pub fn SettingsAccount() -> Element {
-    let _ = verify_user!();
+    verify_user!();
 
     let user = use_api_data(|| async { my_user().await });
     if user.read().is_loading() || user.read().as_ref().is_none() {

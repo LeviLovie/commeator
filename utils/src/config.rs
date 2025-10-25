@@ -112,12 +112,34 @@ pub mod endpoints {
 static WEB_CONFIG: OnceCell<serde_json::Value> = OnceCell::new();
 
 #[cfg(feature = "client")]
+#[cfg(target_arch = "wasm32")]
 #[allow(dead_code)]
 pub async fn web_config() -> serde_json::Value {
     WEB_CONFIG
         .get_or_init(async {
             tracing::warn!("Fetching web config from /endpoints");
             gloo_net::http::Request::get("/endpoints")
+                .header("Cache-Control", "no-cache")
+                .send()
+                .await
+                .expect("Failed to fetch web config")
+                .json()
+                .await
+                .expect("Failed to parse web config")
+        })
+        .await
+        .clone()
+}
+
+#[cfg(feature = "client")]
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(dead_code)]
+pub async fn web_config() -> serde_json::Value {
+    WEB_CONFIG
+        .get_or_init(async {
+            tracing::warn!("Fetching web config from /endpoints");
+            reqwest::Client::new()
+                .get("/endpoints")
                 .header("Cache-Control", "no-cache")
                 .send()
                 .await
@@ -150,6 +172,23 @@ pub async fn auth_base_url() -> String {
 #[cfg(not(feature = "client"))]
 pub fn auth_base_url() -> String {
     env_value("BASE_URL_AUTH").trim_end_matches('/').to_string()
+}
+
+#[cfg(feature = "client")]
+pub async fn auth_return_to() -> String {
+    #[cfg(not(debug_assertions))]
+    {
+        let config = web_config().await;
+        config["return"]
+            .as_str()
+            .expect("auth not found in web config")
+            .trim_end_matches('/')
+            .to_string()
+    }
+    #[cfg(debug_assertions)]
+    {
+        env!("AUTH_RETURN_TO").trim_end_matches('/').to_string()
+    }
 }
 
 #[cfg(feature = "client")]

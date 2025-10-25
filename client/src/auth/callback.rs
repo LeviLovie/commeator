@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use utils::sleep_ms;
 
 use crate::{Route, backend::check_user, components::Spinner};
 
@@ -8,12 +9,18 @@ pub fn AuthCallback() -> Element {
         spawn(async move {
             match check_user().await {
                 Ok(exists) if exists => {
+                    error!("[AuthCallback] User exists, redirecting to home");
                     navigator().replace(Route::ViewHome);
                 }
                 Ok(_) => {
+                    error!("[AuthCallback] User does not exist, redirecting to profile setup");
                     navigator().replace(Route::AuthProfileSetup);
                 }
-                Err(_) => {
+                Err(e) => {
+                    error!(
+                        "[AuthCallback] Error checking user existence, redirecting to home: {}",
+                        e
+                    );
                     navigator().replace(Route::ViewHome);
                 }
             }
@@ -21,7 +28,7 @@ pub fn AuthCallback() -> Element {
     });
 
     use_future(|| async {
-        gloo_timers::future::TimeoutFuture::new(10_000).await;
+        sleep_ms(10_000).await;
         navigator().replace(Route::ViewHome);
     });
 

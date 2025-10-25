@@ -1,64 +1,15 @@
 use anyhow::{Result, anyhow, bail};
-use chrono::{NaiveDateTime, Utc};
 use dioxus::prelude::*;
 use serde::de::DeserializeOwned;
-use std::sync::{LazyLock, Mutex};
 use uuid::Uuid;
 
-use crate::components::logout;
 use utils::{
-    auth::KratosUserData,
-    config::{
-        endpoints::{
-            auth::{URI_LOGIN, URI_WHOAMI},
-            *,
-        },
-        on_api_base_url, on_auth_base_url,
-    },
+    config::{endpoints::*, on_api_base_url},
     data::{ChatInfo, MessageInfo, UserInfo},
     requests::*,
 };
 
-static JWT: LazyLock<Mutex<Option<(String, NaiveDateTime)>>> = LazyLock::new(|| Mutex::new(None));
-pub static CENTRIFUGO_JWT: LazyLock<Mutex<Option<(String, NaiveDateTime)>>> =
-    LazyLock::new(|| Mutex::new(None));
-
-async fn regenerate_centrifugo_jwt() {
-    match generate_centrifugo_jwt().await {
-        Ok(token) => {
-            *CENTRIFUGO_JWT.lock().unwrap() = Some(token);
-        }
-        Err(e) => {
-            if e.to_string().contains("User not found") {
-                logout().await;
-            }
-            error!("Failed to request centrifugo JWT: {}", e);
-        }
-    }
-}
-
-pub async fn get_centrifugo_jwt() -> Option<String> {
-    {
-        let jwt = {
-            let guard = CENTRIFUGO_JWT.lock().unwrap();
-            guard.clone()
-        };
-        match jwt {
-            None => regenerate_centrifugo_jwt().await,
-            Some((_, expires_at)) if expires_at <= Utc::now().naive_utc() => {
-                regenerate_centrifugo_jwt().await
-            }
-            _ => {}
-        }
-    };
-
-    if let Some(token) = CENTRIFUGO_JWT.lock().unwrap().as_ref() {
-        Some(token.0.clone())
-    } else {
-        warn!("Centrifugo JWT is still None after regeneration attempt");
-        None
-    }
-}
+use crate::backend::jwt::get_jwt;
 
 pub enum Method {
     Get,
@@ -91,7 +42,7 @@ impl Request {
         }
     }
 
-    #[cfg(feature = "web")]
+    #[cfg(target_arch = "wasm32")]
     pub async fn send_decode<T>(self) -> Result<T>
     where
         T: DeserializeOwned + Clone,
@@ -122,7 +73,7 @@ impl Request {
         serde_json::from_str(&text).map_err(|e| anyhow!(e.to_string()))
     }
 
-    #[cfg(not(feature = "web"))]
+    #[cfg(not(target_arch = "wasm32"))]
     pub async fn send_decode<T>(self) -> Result<T>
     where
         T: DeserializeOwned + Clone,
@@ -171,46 +122,21 @@ impl RequestBuilder {
         self.add_header("Content-Type", "application/json")
     }
 
-    async fn regenerate_jwt() {
-        match generate_jwt().await {
-            Ok(token) => {
-                *JWT.lock().unwrap() = Some(token);
-            }
-            Err(e) => {
-                if e.to_string().contains("User not found") {
-                    logout().await;
-                }
-                error!("Failed to request JWT: {}", e);
-            }
-        }
-    }
-
     pub async fn add_jwt(self) -> Self {
-        {
-            let jwt = {
-                let guard = JWT.lock().unwrap();
-                guard.clone()
-            };
-            match jwt {
-                None => Self::regenerate_jwt().await,
-                Some((_, expires_at)) if expires_at <= Utc::now().naive_utc() => {
-                    Self::regenerate_jwt().await
-                }
-                _ => {}
+        match get_jwt().await {
+            Some(token) => {
+                let mut headers = self.headers.clone();
+                headers.push(("Authorization".to_string(), format!("Bearer {}", token)));
+                return Self {
+                    url: self.url,
+                    method: self.method,
+                    body: self.body,
+                    headers,
+                };
             }
-        };
-
-        if let Some(token) = JWT.lock().unwrap().as_ref() {
-            let mut headers = self.headers.clone();
-            headers.push(("Authorization".to_string(), format!("Bearer {}", token.0)));
-            return Self {
-                url: self.url,
-                method: self.method,
-                body: self.body,
-                headers,
-            };
-        } else {
-            warn!("JWT is still None after regeneration attempt");
+            None => {
+                error!("Failed to get JWT for request");
+            }
         }
 
         self
@@ -224,24 +150,6 @@ impl RequestBuilder {
             body: self.body,
         }
     }
-}
-
-pub async fn generate_jwt() -> Result<(String, NaiveDateTime)> {
-    let response = Request::get(&on_api_base_url(jwt::IG_GENERATE).await)
-        .build()
-        .send_decode::<GenerateJwtResponse>()
-        .await?;
-    Ok((response.jwt, response.expires_at))
-}
-
-pub async fn generate_centrifugo_jwt() -> Result<(String, NaiveDateTime)> {
-    let response = Request::get(&on_api_base_url(jwt::IG_GENERATE_CENTRIFUGO).await)
-        .add_jwt()
-        .await
-        .build()
-        .send_decode::<GenerateJwtResponse>()
-        .await?;
-    Ok((response.jwt, response.expires_at))
 }
 
 pub async fn list_chats() -> Result<Vec<ChatInfo>> {
@@ -344,6 +252,7 @@ pub async fn edit_message(uuid: Uuid, new_content: String) -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub async fn check_user() -> Result<bool> {
     let response = Request::get(&on_api_base_url(users::IG_CHECK).await)
         .build()
@@ -406,21 +315,4 @@ pub async fn chat_users(chat_uuid: Uuid) -> Result<Vec<UserInfo>> {
         .send_decode::<ListUsersResponse>()
         .await?;
     Ok(response.0)
-}
-
-async fn try_get_kratos_user() -> Result<KratosUserData> {
-    Request::get(&on_auth_base_url(URI_WHOAMI).await)
-        .build()
-        .send_decode::<KratosUserData>()
-        .await
-}
-
-pub async fn get_kratos_user() -> Option<KratosUserData> {
-    match try_get_kratos_user().await {
-        Ok(user) => Some(user),
-        Err(_) => {
-            navigator().replace(on_auth_base_url(URI_LOGIN).await);
-            None
-        }
-    }
 }

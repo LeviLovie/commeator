@@ -1,5 +1,6 @@
 {
   "api": "http:/localhost/api/",
   "auth": "http:/localhost/auth/",
-  "wss": "ws:/localhost/wss/"
+  "wss": "ws:/localhost/wss/",
+  "return": "http:/localhost/a/callback"
 }

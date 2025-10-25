@@ -42,6 +42,7 @@ pub fn View(view_right: bool, left: Element, right: Element) -> Element {
         client: centrifugo.clone(),
     });
 
+    #[cfg(target_arch = "wasm32")]
     use_effect({
         move || {
             let mut layout = use_context::<LayoutContext>().layout;

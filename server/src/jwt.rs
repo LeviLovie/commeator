@@ -122,7 +122,7 @@ pub async fn generate_centrifugo_token(
     let jwt = jsonwebtoken::encode(
         &header,
         &claims,
-        &jsonwebtoken::EncodingKey::from_secret(&centrifugo_jwt_secret()), // same secret, or a separate one
+        &jsonwebtoken::EncodingKey::from_secret(&centrifugo_jwt_secret()),
     )
     .context("Failed to encode Centrifugo JWT")?;
 
