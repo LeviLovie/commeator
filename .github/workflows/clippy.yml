@@ -1,0 +1,31 @@
+name: Clippy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  clippy:
+    name: Run cargo clippy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: [server, client]
+    defaults:
+      run:
+        working-directory: ${{ matrix.project }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run cargo clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
