@@ -9,6 +9,7 @@ use utils::data::UserInfo;
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct UserState {
+    is_loading: bool,
     username: Option<String>,
     user: Option<UserInfo>,
 }
@@ -17,18 +18,26 @@ pub struct UserState {
 pub fn RightUser(username: String) -> Element {
     let navigator = navigator();
     let mut state = use_signal(|| UserState {
+        is_loading: false,
         username: None,
         user: None,
     });
 
     use_effect({
-        let update = if let Some(ref current) = state.read().username {
-            *current != username
-        } else {
-            true
+        let update = {
+            let state = state.read();
+
+            if state.is_loading {
+                false
+            } else if let Some(ref current) = state.username {
+                *current != username
+            } else {
+                true
+            }
         };
 
         if update {
+            state.write().is_loading = true;
             spawn(async move {
                 let user = match get_username(username.clone()).await {
                     Ok(user) => Some(user),
@@ -37,6 +46,7 @@ pub fn RightUser(username: String) -> Element {
                         None
                     }
                 };
+                state.write().is_loading = false;
                 state.write().username = Some(username);
                 state.write().user = user;
             });
@@ -45,12 +55,11 @@ pub fn RightUser(username: String) -> Element {
         || {}
     });
 
-    let state = state.read();
-    if state.user.is_none() {
+    if state.read().is_loading {
         return rsx! { Spinner {} };
     }
 
-    let user = state.user.as_ref().unwrap().clone();
+    let user = state.read().user.as_ref().unwrap().clone();
 
     rsx! {
         Header {
