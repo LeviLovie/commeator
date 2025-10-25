@@ -29,6 +29,10 @@ selfservice:
     registration:
       ui_url: http://localhost:8000/a/login
       lifespan: 1h
+      after:
+        oidc:
+          hooks:
+            - hook: session
     login:
       ui_url: http://localhost:8000/a/login
       lifespan: 1h
