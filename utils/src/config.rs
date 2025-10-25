@@ -1,3 +1,5 @@
+use async_once_cell::OnceCell;
+
 #[cfg(debug_assertions)]
 pub fn env_value(key: &str) -> String {
     if let Err(e) = dotenvy::from_filename(".env") {
@@ -106,17 +108,26 @@ pub mod endpoints {
     }
 }
 
+#[allow(dead_code)]
+static WEB_CONFIG: OnceCell<serde_json::Value> = OnceCell::new();
+
 #[cfg(feature = "client")]
 #[allow(dead_code)]
 pub async fn web_config() -> serde_json::Value {
-    gloo_net::http::Request::get("/endpoints")
-        .header("Cache-Control", "no-cache")
-        .send()
+    WEB_CONFIG
+        .get_or_init(async {
+            tracing::warn!("Fetching web config from /endpoints");
+            gloo_net::http::Request::get("/endpoints")
+                .header("Cache-Control", "no-cache")
+                .send()
+                .await
+                .expect("Failed to fetch web config")
+                .json()
+                .await
+                .expect("Failed to parse web config")
+        })
         .await
-        .expect("Failed to fetch web config")
-        .json()
-        .await
-        .expect("Failed to parse web config")
+        .clone()
 }
 
 #[cfg(feature = "client")]
