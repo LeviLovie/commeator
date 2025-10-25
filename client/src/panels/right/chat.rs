@@ -446,7 +446,7 @@ pub fn MessageBox(uuid: Uuid) -> Element {
     };
 
     use_effect({
-        let interaction_state = interaction.read().clone(); // clone early
+        let interaction_state = interaction.read().clone();
         if let Interaction::Edit {
             uuid,
             content,
