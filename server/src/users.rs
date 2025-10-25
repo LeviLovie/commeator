@@ -12,7 +12,8 @@ use crate::{db, schema::*, verify_jwt, verify_kratos_cookie, AppError};
 use utils::{
     data::UserInfo,
     requests::{
-        ChatUsersRequest, CheckUserResponse, GetUserRequest, GetUserResponse, GetUsernameRequest, ListUsersRequest, ListUsersResponse, SetupUserRequest, SetupUserResponse
+        ChatUsersRequest, CheckUserResponse, GetUserRequest, GetUserResponse, GetUsernameRequest,
+        ListUsersRequest, ListUsersResponse, SetupUserRequest, SetupUserResponse,
     },
 };
 

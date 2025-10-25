@@ -1,9 +1,10 @@
 use dioxus::prelude::*;
 
 use crate::{
+    Route,
     backend::{my_user, use_api_data},
     components::{Header, HeaderButtonBack, HeaderText, LogOut, Spinner},
-    verify_user, Route,
+    verify_user,
 };
 
 #[component]

@@ -1,3 +1,5 @@
+#![allow(clippy::module_inception)]
+
 mod auth;
 mod backend;
 mod centrifugo;

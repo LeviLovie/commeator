@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::{components::IconButton, Route};
+use crate::{Route, components::IconButton};
 
 #[component]
 pub fn Header(left: Element, center: Element, right: Element) -> Element {

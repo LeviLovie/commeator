@@ -2,13 +2,14 @@ use dioxus::prelude::*;
 use uuid::Uuid;
 
 use crate::{
+    Route,
     backend::{
         chat_users, delete_message, edit_message, get_chat, list_messages, my_user, send_message,
     },
     centrifugo::CentrifugoContext,
     components::{Avatar, Header, HeaderButtonBack, HeaderText, IconButton, Spinner},
     panels::{LayoutContext, PanelLayout},
-    verify_uuid, Route,
+    verify_uuid,
 };
 use utils::{
     data::{ChatInfo, MessageInfo, UserInfo},
@@ -70,7 +71,8 @@ pub fn RightChat(uuid: String) -> Element {
             .subscribe(&format!("chat_{}", uuid), move |update| {
                 CHAT_UPDATES.write().push((uuid, update));
             })
-            .await {
+            .await
+        {
             error!("Failed to subscribe to chat updates: {}", e);
         }
     });
