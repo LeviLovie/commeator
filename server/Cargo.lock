@@ -3076,6 +3076,7 @@ name = "utils"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-once-cell",
  "chrono",
  "dotenvy",
  "reqwest",
