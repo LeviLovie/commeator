@@ -73,29 +73,19 @@ pub fn RightChat(uuid: String) -> Element {
             *state.write() = ChatState::Loading;
 
             spawn(async move {
-                let chat = get_chat(uuid)
-                    .await
-                    .log_error()
-                    .expect("Failed to fetch chat");
-                let members = chat_users(uuid)
-                    .await
-                    .log_error()
-                    .expect("Failed to fetch chat users");
-                let my_user = my_user()
-                    .await
-                    .log_error()
-                    .expect("Failed to fetch my user");
-                let messages = list_messages(uuid)
-                    .await
-                    .log_error()
-                    .expect("Failed to fetch messages");
+                let (chat_res, members_res, my_user_res, messages_res) = futures::join!(
+                    get_chat(uuid),
+                    chat_users(uuid),
+                    my_user(),
+                    list_messages(uuid),
+                );
 
                 *state.write() = ChatState::Loaded {
                     uuid,
-                    chat,
-                    members,
-                    my_user,
-                    messages,
+                    chat: chat_res.log_error().expect("Failed to fetch chat"),
+                    members: members_res.log_error().expect("Failed to fetch chat users"),
+                    my_user: my_user_res.log_error().expect("Failed to fetch my user"),
+                    messages: messages_res.log_error().expect("Failed to fetch messages"),
                 };
             });
         }
