@@ -1,4 +1,4 @@
-name: Clippy
+name: Lint
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   clippy:
-    name: Run cargo clippy
+    name: Run lints
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -22,12 +22,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libglib2.0-dev libgobject-2.0-dev
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
 
-      - name: Check formatting
+      - name: Run cargo fmt
         run: cargo fmt --all -- --check
 
       - name: Run cargo clippy
