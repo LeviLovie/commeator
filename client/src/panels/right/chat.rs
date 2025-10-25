@@ -18,6 +18,7 @@ use utils::{
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct ChatState {
+    is_loading: bool,
     uuid: Option<Uuid>,
     chat: Option<ChatInfo>,
     members: Option<Vec<UserInfo>>,
@@ -42,6 +43,7 @@ pub fn RightChat(uuid: String) -> Element {
     let centrifugo = use_context::<CentrifugoContext>();
 
     let mut state = use_signal(|| ChatState {
+        is_loading: false,
         uuid: None,
         chat: None,
         members: None,
@@ -124,13 +126,23 @@ pub fn RightChat(uuid: String) -> Element {
     });
 
     use_effect({
-        let update = if let Some(current_uuid) = state.read().uuid {
-            current_uuid != uuid
-        } else {
-            true
+        let update = {
+            let state = state.read();
+
+            if state.is_loading {
+                false
+            } else if let Some(current_uuid) = state.uuid {
+                info!("Current UUID: {}, New UUID: {}", current_uuid, uuid);
+                current_uuid != uuid
+            } else {
+                info!("No current UUID, loading new chat {}", uuid);
+                true
+            }
         };
+        info!("Update state: {}", update);
 
         if update {
+            state.write().is_loading = true;
             spawn(async move {
                 let chat = match get_chat(uuid).await {
                     Ok(chat) => Some(chat),
@@ -160,11 +172,14 @@ pub fn RightChat(uuid: String) -> Element {
                         None
                     }
                 };
-                state.write().uuid = Some(uuid);
-                state.write().chat = chat;
-                state.write().members = members;
-                state.write().my_user = my_user;
-                state.write().messages = messages;
+
+                let mut state_mut = state.write();
+                state_mut.is_loading = false;
+                state_mut.uuid = Some(uuid);
+                state_mut.chat = chat;
+                state_mut.members = members;
+                state_mut.my_user = my_user;
+                state_mut.messages = messages;
             });
         }
 
@@ -187,11 +202,11 @@ pub fn RightChat(uuid: String) -> Element {
         || {}
     });
 
-    let state = state.read();
-    if state.chat.is_none() || state.messages.is_none() {
+    if state.read().is_loading {
         return rsx! { Spinner {} };
     }
 
+    let state = state.read();
     let chat = state.chat.as_ref().unwrap();
     let messages = state.messages.as_ref().unwrap();
 
