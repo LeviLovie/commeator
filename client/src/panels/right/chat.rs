@@ -132,14 +132,11 @@ pub fn RightChat(uuid: String) -> Element {
             if state.is_loading {
                 false
             } else if let Some(current_uuid) = state.uuid {
-                info!("Current UUID: {}, New UUID: {}", current_uuid, uuid);
                 current_uuid != uuid
             } else {
-                info!("No current UUID, loading new chat {}", uuid);
                 true
             }
         };
-        info!("Update state: {}", update);
 
         if update {
             state.write().is_loading = true;
