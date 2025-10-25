@@ -2,37 +2,47 @@ use dioxus::prelude::*;
 use uuid::Uuid;
 
 use crate::{
-    Route,
     backend::{
         chat_users, delete_message, edit_message, get_chat, list_messages, my_user, send_message,
-    },
-    centrifugo::CentrifugoContext,
-    components::{Avatar, Header, HeaderButtonBack, HeaderText, IconButton, Spinner},
-    panels::{LayoutContext, PanelLayout},
-    verify_uuid,
+    }, centrifugo::CentrifugoContext, components::{Avatar, Header, HeaderButtonBack, HeaderText, IconButton, SmallIconButton, Spinner}, panels::{LayoutContext, PanelLayout}, verify_uuid, Route
 };
 use utils::{
+    LogError,
     data::{ChatInfo, MessageInfo, UserInfo},
     updates::Update,
 };
 
 #[derive(Clone, PartialEq, Debug)]
-pub struct ChatState {
-    is_loading: bool,
-    uuid: Option<Uuid>,
-    chat: Option<ChatInfo>,
-    members: Option<Vec<UserInfo>>,
-    my_user: Option<UserInfo>,
-    messages: Option<Vec<MessageInfo>>,
+pub enum ChatState {
+    Uninitialized,
+    Loading,
+    Loaded {
+        uuid: Uuid,
+        my_user: UserInfo,
+        chat: ChatInfo,
+        members: Vec<UserInfo>,
+        messages: Vec<MessageInfo>,
+    },
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub struct ChatInterContext {
-    message: Signal<String>,
-    message_context: Signal<Option<Uuid>>,
-    delete: Signal<Option<Uuid>>,
-    reply: Signal<Option<Uuid>>,
-    edit: Signal<(bool, Option<Uuid>)>,
+pub enum Interaction {
+    None,
+    Selected {
+        uuid: Uuid,
+    },
+    Delete {
+        uuid: Uuid,
+    },
+    Reply {
+        uuid: Uuid,
+        content: String,
+    },
+    Edit {
+        uuid: Uuid,
+        content: String,
+        copy_content: bool,
+    },
 }
 
 pub static CHAT_UPDATES: GlobalSignal<Vec<(Uuid, Update)>> = GlobalSignal::new(Vec::new);
@@ -41,42 +51,21 @@ pub static CHAT_UPDATES: GlobalSignal<Vec<(Uuid, Update)>> = GlobalSignal::new(V
 pub fn RightChat(uuid: String) -> Element {
     let uuid = verify_uuid!(uuid);
     let centrifugo = use_context::<CentrifugoContext>();
-
-    let mut state = use_signal(|| ChatState {
-        is_loading: false,
-        uuid: None,
-        chat: None,
-        members: None,
-        my_user: None,
-        messages: None,
-    });
-
+    let mut state = use_signal(|| ChatState::Uninitialized);
     {
-        let default_message = use_signal(String::new);
-        let default_message_context = use_signal(|| None);
-        let default_delete = use_signal(|| None);
-        let default_reply = use_signal(|| None);
-        let default_edit = use_signal(|| (false, None));
-        use_context_provider(|| ChatInterContext {
-            message: default_message,
-            message_context: default_message_context,
-            delete: default_delete,
-            reply: default_reply,
-            edit: default_edit,
-        });
-    };
-    let mut context = use_context::<ChatInterContext>();
+        let default_interaction = use_signal(|| Interaction::None);
+        use_context_provider(|| default_interaction);
+    }
 
     spawn(async move {
-        let client = centrifugo.client.clone();
-        if let Err(e) = client
+        centrifugo
+            .client
             .subscribe(&format!("chat_{}", uuid), move |update| {
                 CHAT_UPDATES.write().push((uuid, update));
             })
             .await
-        {
-            error!("Failed to subscribe to chat updates: {}", e);
-        }
+            .log_error()
+            .expect("Failed to subscribe to chat updates");
     });
 
     spawn(async move {
@@ -87,38 +76,31 @@ pub fn RightChat(uuid: String) -> Element {
             if !updates.is_empty() {
                 CHAT_UPDATES.write().clear();
 
-                let mut state_guard = state.write();
-                for (update_uuid, update) in updates.iter() {
-                    if update_uuid != &state_guard.uuid.unwrap_or_default() {
-                        continue;
-                    }
+                match &mut *state.write() {
+                    ChatState::Uninitialized | ChatState::Loading => continue,
+                    ChatState::Loaded { messages, .. } => {
+                        for (_, update) in updates.iter() {
+                            match update {
+                                Update::NewMessage(message) => {
+                                    if !messages.iter().any(|m| m.uuid == message.uuid) {
+                                        messages.push(message.clone());
+                                    }
+                                }
+                                Update::DeleteMessage(payload) => {
+                                    messages.retain(|m| m.uuid != payload.message_uuid);
+                                }
+                                Update::UpdateMessage(payload) => {
+                                    if let Some(message) =
+                                        messages.iter_mut().find(|m| m.uuid == payload.uuid)
+                                    {
+                                        message.content = payload.new_content.clone();
+                                        message.edited_at = Some(payload.edited_at);
+                                    }
+                                }
 
-                    match update {
-                        Update::NewMessage(message) => {
-                            if let Some(messages) = state_guard.messages.as_mut()
-                                && !messages.iter().any(|m| m.uuid == message.uuid)
-                            {
-                                messages.push(message.clone());
+                                _ => {}
                             }
                         }
-
-                        Update::DeleteMessage(payload) => {
-                            if let Some(messages) = state_guard.messages.as_mut() {
-                                messages.retain(|m| m.uuid != payload.message_uuid);
-                            }
-                        }
-
-                        Update::UpdateMessage(payload) => {
-                            if let Some(messages) = state_guard.messages.as_mut()
-                                && let Some(message) =
-                                    messages.iter_mut().find(|m| m.uuid == payload.uuid)
-                            {
-                                message.content = payload.new_content.clone();
-                                message.edited_at = Some(payload.edited_at);
-                            }
-                        }
-
-                        _ => {}
                     }
                 }
             }
@@ -126,142 +108,99 @@ pub fn RightChat(uuid: String) -> Element {
     });
 
     use_effect({
-        let update = {
-            let state = state.read();
+        if match state.read().clone() {
+            ChatState::Uninitialized => true,
+            ChatState::Loading => false,
+            ChatState::Loaded {
+                uuid: current_uuid, ..
+            } => current_uuid != uuid,
+        } {
+            *state.write() = ChatState::Loading;
 
-            if state.is_loading {
-                false
-            } else if let Some(current_uuid) = state.uuid {
-                current_uuid != uuid
-            } else {
-                true
-            }
-        };
-
-        if update {
-            state.write().is_loading = true;
             spawn(async move {
-                let chat = match get_chat(uuid).await {
-                    Ok(chat) => Some(chat),
-                    Err(err) => {
-                        error!("Failed to fetch chat: {}", err);
-                        None
-                    }
-                };
-                let members = match chat_users(uuid).await {
-                    Ok(users) => Some(users),
-                    Err(err) => {
-                        error!("Failed to fetch chat users: {}", err);
-                        None
-                    }
-                };
-                let my_user = match my_user().await {
-                    Ok(user) => Some(user),
-                    Err(err) => {
-                        error!("Failed to fetch my user: {}", err);
-                        None
-                    }
-                };
-                let messages = match list_messages(uuid).await {
-                    Ok(msgs) => Some(msgs),
-                    Err(err) => {
-                        error!("Failed to fetch messages: {}", err);
-                        None
-                    }
-                };
+                let chat = get_chat(uuid)
+                    .await
+                    .log_error()
+                    .expect("Failed to fetch chat");
+                let members = chat_users(uuid)
+                    .await
+                    .log_error()
+                    .expect("Failed to fetch chat users");
+                let my_user = my_user()
+                    .await
+                    .log_error()
+                    .expect("Failed to fetch my user");
+                let messages = list_messages(uuid)
+                    .await
+                    .log_error()
+                    .expect("Failed to fetch messages");
 
-                let mut state_mut = state.write();
-                state_mut.is_loading = false;
-                state_mut.uuid = Some(uuid);
-                state_mut.chat = chat;
-                state_mut.members = members;
-                state_mut.my_user = my_user;
-                state_mut.messages = messages;
+                *state.write() = ChatState::Loaded {
+                    uuid,
+                    chat,
+                    members,
+                    my_user,
+                    messages,
+                };
             });
         }
 
         || {}
     });
 
-    use_effect({
-        if let Some(message_uuid) = context.edit.read().1
-            && !context.edit.read().0
-        {
-            let state = state.read();
-            if let Some(messages) = &state.messages
-                && let Some(message) = messages.iter().find(|m| m.uuid == message_uuid)
-                && context.message.read().is_empty()
-            {
-                context.message.set(message.content.clone());
-            }
+    match &*state.read() {
+        ChatState::Uninitialized | ChatState::Loading => {
+            rsx! { Spinner {} }
         }
+        ChatState::Loaded {
+            uuid,
+            my_user,
+            chat,
+            members,
+            messages,
+            ..
+        } => {
+            rsx! {
+                div {
+                    class: "flex flex-col h-full",
 
-        || {}
-    });
+                    Header {
+                        left: rsx! { HeaderButtonBack {
+                            route: Route::ViewChats,
+                        } },
+                        center: rsx! { HeaderText {
+                            text: "{chat.name}"
+                        } },
+                        right: rsx! {}
+                    }
 
-    if state.read().is_loading {
-        return rsx! { Spinner {} };
-    }
+                    div {
+                        class: "flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50",
+                        id: "message-container",
 
-    let state = state.read();
-    let chat = state.chat.as_ref().unwrap();
-    let messages = state.messages.as_ref().unwrap();
+                        { messages.iter().map(|message| {
+                            message_item(members, my_user, message.clone())
+                        }) }
+                    }
 
-    rsx! {
-        div {
-            class: "flex flex-col h-full",
-
-            Header {
-                left: rsx! { HeaderButtonBack {
-                    route: Route::ViewChats,
-                } },
-                center: rsx! { HeaderText {
-                    text: "{chat.name}"
-                } },
-                right: rsx! {}
+                    MessageBox { uuid: *uuid }
+                }
             }
-
-            div {
-                class: "flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50",
-                id: "message-container",
-
-                { messages.iter().map(|message| {
-                    rsx! { MessageItem {
-                        users: state.members.clone(),
-                        my_user: state.my_user.clone(),
-                        message: message.clone()
-                    } }
-                }) }
-            }
-
-            MessageBox { uuid }
         }
     }
 }
 
-#[component]
-pub fn MessageItem(
-    users: Option<Vec<UserInfo>>,
-    my_user: Option<UserInfo>,
-    message: MessageInfo,
-) -> Element {
+pub fn message_item(users: &[UserInfo], my_user: &UserInfo, message: MessageInfo) -> Element {
     let layout_signal = use_context::<LayoutContext>().layout;
     let layout_guard = layout_signal.read();
     let layout = layout_guard.clone();
-
-    let mut context = use_context::<ChatInterContext>();
+    let mut interaction = use_context::<Signal<Interaction>>();
 
     let user = users
-        .as_ref()
-        .unwrap()
         .iter()
         .find(|u| u.uuid == message.sender_uuid)
         .cloned();
-    let is_me = if let Some(my_user) = &my_user {
-        my_user.uuid == message.sender_uuid
-    } else {
-        false
-    };
+    let is_me = my_user.uuid == message.sender_uuid;
 
     let location_right = is_me && layout == PanelLayout::Mobile;
 
@@ -274,29 +213,21 @@ pub fn MessageItem(
     let reply_margin = if location_right { "mr-5" } else { "ml-5" };
 
     rsx! {
-        { if let Some(reply) = message.reply {
-            let is_me = if let Some(my_user) = &my_user {
-                my_user.uuid == reply.sender_uuid
-            } else {
-                false
-            };
+        { if let Some(reply) = &message.reply { rsx! {
+            div {
+                class: "flex flex-row {reply_margin} {container_class}",
+                style: "margin-bottom: -15px;",
 
-            rsx! {
-                div {
-                    class: "flex flex-row {reply_margin} {container_class}",
-                    style: "margin-bottom: -15px;",
-
-                    MessageBubble {
-                        uuid: reply.uuid,
-                        content: reply.content.clone(),
-                        sender: users.as_ref().unwrap().iter().find(|u| u.uuid == reply.sender_uuid).cloned(),
-                        is_me,
-                        is_reply: true,
-                        location_right,
-                        edited: reply.edited_at.is_some(),
-                    }
+                MessageBubble {
+                    uuid: reply.uuid,
+                    content: reply.content.clone(),
+                    sender: users.iter().find(|u| u.uuid == reply.sender_uuid).cloned(),
+                    is_me: my_user.uuid == reply.sender_uuid,
+                    is_reply: true,
+                    location_right,
+                    edited: reply.edited_at.is_some(),
                 }
-            }
+            } }
         } else { rsx! {} } }
 
         div {
@@ -314,78 +245,82 @@ pub fn MessageItem(
                 }
             } } else { rsx! {} } }
 
-            { if context.message_context.read().is_some_and(|uuid| uuid == message.uuid) {
-                rsx! {
-                    div {
-                        class: "flex flex-row justify-start ml-2",
+            div {
+                class: "flex flex-row justify-start ml-2",
 
-                        button {
-                            class: "bg-blue-200 hover:bg-blue-300 text-sm px-4 py-2 rounded-2xl mr-2",
-                            onclick: move |e| {
-                                e.prevent_default();
-                                context.message_context.set(None);
-                                context.reply.set(Some(message.uuid));
-                                context.delete.set(None);
-                                context.edit.set((false, None));
-                            },
+                { match interaction.read().clone() {
+                    Interaction::Selected { uuid: context_uuid } if context_uuid == message.uuid => {
+                        let message_clone_reply = message.clone();
+                        let message_clone_edit = message.clone();
+                        let message_clone_delete = message.clone();
 
-                            "Reply"
-                        }
-
-                        { if is_me { rsx! {
+                        rsx! {
                             button {
-                                class: "bg-yellow-200 hover:bg-yellow-300 text-sm px-4 py-2 rounded-2xl mr-2",
+                                class: "bg-blue-200 hover:bg-blue-300 text-sm px-4 py-2 rounded-2xl mr-2",
                                 onclick: move |e| {
                                     e.prevent_default();
-                                    context.message_context.set(None);
-                                    context.reply.set(None);
-                                    context.delete.set(None);
-                                    context.edit.set((false, Some(message.uuid)));
+                                    interaction.set(Interaction::Reply {
+                                        uuid: message_clone_reply.uuid,
+                                        content: message_clone_reply.content.clone(),
+                                    });
                                 },
 
-                                "Edit"
+                                "Reply"
                             }
 
-                            { if let Some(delete) = *context.delete.read() { rsx! {
+                            { if is_me { rsx! {
                                 button {
-                                    class: "bg-red-200 hover:bg-red-300 text-sm px-4 py-2 rounded-2xl mr-2",
+                                    class: "bg-yellow-200 hover:bg-yellow-300 text-sm px-4 py-2 rounded-2xl mr-2",
                                     onclick: move |e| {
                                         e.prevent_default();
-                                        if delete == message.uuid {
-                                            spawn({
-                                                let message_uuid = message.uuid;
-                                                async move {
-                                                    if let Err(e) =  delete_message(message_uuid).await {
-                                                        error!("Failed to delete message {}: {}", message_uuid, e);
-                                                    }
-                                                }
-                                            });
-                                        }
-                                        context.message_context.set(None);
-                                        context.reply.set(None);
-                                        context.delete.set(None);
-                                        context.edit.set((false, None));
+                                        interaction.set(Interaction::Edit {
+                                            uuid: message_clone_edit.uuid,
+                                            content: message_clone_edit.content.clone(),
+                                            copy_content: true,
+                                        });
                                     },
 
-                                    "Sure? :("
+                                    "Edit"
                                 }
-                            } } else { rsx! {
+
                                 button {
                                     class: "bg-red-200 hover:bg-red-300 text-sm px-4 py-2 rounded-2xl mr-2",
                                     onclick: move |e| {
                                         e.prevent_default();
-                                        context.delete.set(Some(message.uuid));
-                                        context.reply.set(None);
-                                        context.edit.set((false, None));
+                                        interaction.set(Interaction::Delete {
+                                            uuid: message_clone_delete.uuid,
+                                        });
                                     },
 
                                     "Delete"
                                 }
-                            } } }
-                        } } else { rsx! {} } }
-                    }
-                }
-            } else { rsx! {} } }
+                            } } else { rsx! {} }
+                        }
+                    } }
+
+                    Interaction::Delete { uuid: context_uuid } if context_uuid == message.uuid => { rsx! {
+                        button {
+                            class: "bg-red-200 hover:bg-red-300 text-sm px-4 py-2 rounded-2xl mr-2",
+                            onclick: move |e| {
+                                e.prevent_default();
+                                interaction.set(Interaction::None);
+                                spawn({
+                                    let message_uuid = message.uuid;
+                                    async move {
+                                        if let Err(e) =  delete_message(message_uuid).await {
+                                            error!("Failed to delete message {}: {}", message_uuid, e);
+                                        }
+                                    }
+                                });
+                            },
+
+                            "Sure? :("
+                        }
+                    } }
+
+                    _ => { rsx! {} }
+                } }
+            }
 
             { if location_right { rsx! {
                 MessageBubble {
@@ -412,32 +347,32 @@ pub fn MessageBubble(
     location_right: bool,
     edited: bool,
 ) -> Element {
-    let mut context = use_context::<ChatInterContext>();
+    let mut interaction = use_context::<Signal<Interaction>>();
 
-    let mut bubble_color = if is_reply {
-        if is_me { "bg-green-400" } else { "bg-gray-400" }
-    } else if is_me {
-        "bg-green-200"
-    } else {
-        "bg-white"
+    let bubble_color = match *interaction.read() {
+        Interaction::Reply {
+            uuid: context_uuid, ..
+        } if context_uuid == uuid => {
+            if is_me {
+                "bg-green-400"
+            } else {
+                "bg-gray-400"
+            }
+        }
+        Interaction::Edit {
+            uuid: context_uuid, ..
+        } if context_uuid == uuid => "bg-yellow-200",
+        Interaction::Delete { uuid: context_uuid } if context_uuid == uuid => "bg-red-200",
+        _ => {
+            if is_reply {
+                if is_me { "bg-green-400" } else { "bg-gray-400" }
+            } else if is_me {
+                "bg-green-200"
+            } else {
+                "bg-white"
+            }
+        }
     };
-
-    if context
-        .reply
-        .read()
-        .is_some_and(|reply_uuid| reply_uuid == uuid)
-    {
-        bubble_color = "bg-blue-200";
-    }
-
-    if context
-        .edit
-        .read()
-        .1
-        .is_some_and(|edit_uuid| edit_uuid == uuid)
-    {
-        bubble_color = "bg-yellow-200";
-    }
 
     rsx! {
         { if !location_right && let Some(ref sender) = sender { rsx! {
@@ -460,11 +395,12 @@ pub fn MessageBubble(
                             return;
                         }
 
-                        if context.message_context.read().is_some_and(|context_uuid| context_uuid == uuid) {
-                            context.message_context.set(None);
-                            return;
+                        let mut interaction = interaction.write();
+                        if matches!(*interaction, Interaction::Selected { uuid: current_uuid } if current_uuid == uuid) {
+                            *interaction = Interaction::None;
+                        } else {
+                            *interaction = Interaction::Selected { uuid };
                         }
-                        context.message_context.set(Some(uuid));
                     },
 
                     { if edited { rsx! {
@@ -495,6 +431,7 @@ pub fn MessageBubble(
 #[component]
 pub fn MessageAvatar(email_hash: String, tint: bool) -> Element {
     let tint = if tint { "brightness-75" } else { "" };
+
     rsx! {
         div {
             class: "flex items-end mr-2 w-9 h-9 ml-2 {tint}",
@@ -505,49 +442,159 @@ pub fn MessageAvatar(email_hash: String, tint: bool) -> Element {
 
 #[component]
 pub fn MessageBox(uuid: Uuid) -> Element {
-    let mut context = use_context::<ChatInterContext>();
-    let mut message = context.message;
+    let mut interaction = use_context::<Signal<Interaction>>();
+    let mut message = use_signal(String::new);
 
-    let icon = if context.edit.read().1.is_some() {
-        asset!("/assets/icons/edit.svg")
-    } else {
-        asset!("/assets/icons/forward.svg")
+    let icon = match *interaction.read() {
+        Interaction::Edit { .. } => asset!("/assets/icons/edit.svg"),
+        _ => asset!("/assets/icons/forward.svg"),
     };
+
+    use_effect({
+        let interaction_state = interaction.read().clone(); // clone early
+        if let Interaction::Edit {
+            uuid,
+            content,
+            copy_content,
+        } = interaction_state
+            && copy_content
+        {
+            if message.read().is_empty() {
+                message.set(content.clone());
+            }
+
+            interaction.set(Interaction::Edit {
+                uuid,
+                content: content.clone(),
+                copy_content: false,
+            });
+        }
+
+        || {}
+    });
 
     rsx! {
         div {
-            class: "sticky bottom-0 bg-white border-t border-gray-300 p-2",
+            class: "flex flex-col sticky bottom-0 bg-white border-t border-gray-300 p-2",
+
+            { match interaction.read().clone() {
+                Interaction::Reply { content, .. } => {
+                    let mut content = content.clone();
+                    content.truncate(30);
+
+                    rsx! {
+                        div {
+                            class: "bg-gray-200 p-1 mb-2 rounded flex justify-between items-center",
+                            p {
+                                "Replying to message: {content}"
+                            }
+                        }
+                    }
+                }
+
+                Interaction::Edit { content, .. } => {
+                    let mut content = content.clone();
+                    content.truncate(30);
+
+                    rsx! {
+                        div {
+                            class: "bg-yellow-200 p-1 mb-2 rounded flex justify-between items-center",
+
+                            p {
+                                "Editing message: {content}"
+                            }
+                        }
+                    }
+                }
+
+                _ => { rsx! {} }
+            } }
 
             form {
                 class: "flex gap-2",
                 onsubmit: move |e| {
                     e.prevent_default();
-
-                    let msg = message.read().trim().to_string();
-                    if msg.is_empty() {
+                    let message_clone = message.read().clone();
+                    let message_clone = message_clone.trim().to_string();
+                    if message_clone.is_empty() {
                         return;
                     }
 
-                    if context.edit.read().1.is_some() {
-                        let edit_uuid = context.edit.read().1.unwrap();
-                        context.edit.set((false, None));
-                        spawn(async move {
-                            if let Err(e) = edit_message(edit_uuid, msg).await {
-                                error!("Failed to edit message: {}", e);
-                            }
-                        });
-                        message.set(String::new());
-                    } else {
-                        spawn(async move {
-                            let reply = *context.reply.read();
-                            if let Err(e) = send_message(uuid, msg, reply).await {
-                                error!("Failed to send message: {}", e);
+                    match &mut *interaction.write() {
+                        Interaction::Edit { uuid: edit_uuid, .. } => {
+                            let new_content = message_clone.trim().to_string();
+                            if new_content.is_empty() {
+                                return;
                             }
                             message.set(String::new());
-                            context.reply.set(None);
-                        });
+                            spawn({
+                                let edit_uuid = *edit_uuid;
+                                async move {
+                                    if let Err(e) = edit_message(edit_uuid, new_content).await {
+                                        error!("Failed to edit message: {}", e);
+                                    }
+                                }
+                            });
+                        },
+
+                        Interaction::Reply { uuid: reply_uuid, .. } => {
+                            let msg = message.read().trim().to_string();
+                            if msg.is_empty() {
+                                return;
+                            }
+                            message.set(String::new());
+                            let reply = *reply_uuid;
+                            spawn(async move {
+                                if let Err(e) = send_message(uuid, msg, Some(reply)).await {
+                                    error!("Failed to send message: {}", e);
+                                }
+                            });
+                        }
+
+                        _ => {
+                            let msg = message.read().trim().to_string();
+                            if msg.is_empty() {
+                                return;
+                            }
+                            message.set(String::new());
+                            spawn(async move {
+                                if let Err(e) = send_message(uuid, msg, None).await {
+                                    error!("Failed to send message: {}", e);
+                                }
+                            });
+                        }
                     }
+
+                    *interaction.write() = Interaction::None;
                 },
+
+                { match interaction.read().clone() {
+                    Interaction::Reply { .. } => { rsx! {
+                        IconButton {
+                            alt: "Close".to_string(),
+                            ty: "button".to_string(),
+                            icon: asset!("/assets/icons/close.svg"),
+                            onclick: move |_| {
+                                interaction.set(Interaction::None);
+                            },
+                        }
+                    } }
+
+                    Interaction::Edit { .. } => { rsx! {
+                        div {
+                            IconButton {
+                                alt: "Close".to_string(),
+                                ty: "button".to_string(),
+                                icon: asset!("/assets/icons/close.svg"),
+                                onclick: move |_| {
+                                    interaction.set(Interaction::None);
+                                },
+                            }
+                        }
+                    } }
+
+                    _ => { rsx! {} }
+                } }
 
                 input {
                     class: "flex-1 px-2 border border-gray-300 rounded",
@@ -561,18 +608,6 @@ pub fn MessageBox(uuid: Uuid) -> Element {
                     icon,
                     ty: "submit".to_string(),
                 }
-
-                { if context.reply.read().is_some() || context.edit.read().1.is_some() { rsx! {
-                    IconButton {
-                        alt: "Close".to_string(),
-                        ty: "button".to_string(),
-                        icon: asset!("/assets/icons/close.svg"),
-                        onclick: move |_| {
-                            context.reply.set(None);
-                            context.edit.set((false, None));
-                        },
-                    }
-                } } else { rsx! {} } }
             }
         }
     }
