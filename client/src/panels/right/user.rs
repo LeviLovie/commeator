@@ -5,113 +5,106 @@ use crate::{
     backend::{get_username, verify_private_chat},
     components::{Avatar, Header, HeaderButtonBack, HeaderText, Spinner},
 };
-use utils::data::UserInfo;
+use utils::{data::UserInfo, LogError};
 
 #[derive(Clone, PartialEq, Debug)]
-pub struct UserState {
-    is_loading: bool,
-    username: Option<String>,
-    user: Option<UserInfo>,
+pub enum UserState {
+    Uninitialized,
+    Loading,
+    Loaded {
+        username: String,
+        user: UserInfo,
+    },
 }
 
 #[component]
 pub fn RightUser(username: String) -> Element {
     let navigator = navigator();
-    let mut state = use_signal(|| UserState {
-        is_loading: false,
-        username: None,
-        user: None,
-    });
+    let mut state = use_signal(|| UserState::Uninitialized);
 
     use_effect({
-        let update = {
-            let state = state.read();
+        if match state.read().clone() {
+            UserState::Uninitialized => true,
+            UserState::Loading => false,
+            UserState::Loaded {
+                username: current_username,
+                ..
+            } => current_username != username,
+        } {
+            *state.write() = UserState::Loading;
 
-            if state.is_loading {
-                false
-            } else if let Some(ref current) = state.username {
-                *current != username
-            } else {
-                true
-            }
-        };
-
-        if update {
-            state.write().is_loading = true;
             spawn(async move {
-                let user = match get_username(username.clone()).await {
-                    Ok(user) => Some(user),
-                    Err(err) => {
-                        error!("Failed to fetch profile: {}", err);
-                        None
-                    }
-                };
-                state.write().is_loading = false;
-                state.write().username = Some(username);
-                state.write().user = user;
+                let user = get_username(username.clone()).await.log_error().expect("Failed to fetch user profile");
+
+                *state.write() = UserState::Loaded {
+                    username,
+                    user,
+                }
             });
         }
 
         || {}
     });
 
-    if state.read().is_loading {
-        return rsx! { Spinner {} };
-    }
-
-    let user = state.read().user.as_ref().unwrap().clone();
-
-    rsx! {
-        Header {
-            left: rsx! { HeaderButtonBack {
-                route: Route::ViewUsers,
-            } },
-            center: rsx! { HeaderText {
-                text: "{user.username}"
-            } },
-            right: rsx! {}
+    match state.read().clone() {
+        UserState::Uninitialized | UserState::Loading => {
+            rsx! { Spinner {} }
         }
-
-        div {
-            class: "flex flex-col items-center p-6",
-
-            div {
-                Avatar { email_hash: user.email_hash.clone() },
+        UserState::Loaded {
+            user,
+            ..
+        } => { rsx! {
+            Header {
+                left: rsx! { HeaderButtonBack {
+                    route: Route::ViewUsers,
+                } },
+                center: rsx! { HeaderText {
+                    text: "{user.username}"
+                } },
+                right: rsx! {}
             }
 
             div {
-                class: "mb-4",
+                class: "flex flex-col items-center p-6",
 
-                p {
-                    class: "text-4xl font-bold",
-                    {user.nickname.clone()}
+                div {
+                    Avatar { email_hash: user.email_hash.clone() },
                 }
 
-                p {
-                    class: "text-s",
-                    "@{user.username}"
-                }
-            }
+                div {
+                    class: "mb-4",
 
-            div {
-                button {
-                    class: "text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2",
-                    onclick: move |_| {
-                        let user_uuid = user.uuid;
-                        spawn(async move {
-                            match verify_private_chat(user_uuid).await {
-                                Ok(chat_uuid) => {
-                                    navigator.replace(Route::ViewChat { uuid: chat_uuid.to_string() });
+                    p {
+                        class: "text-4xl font-bold",
+                        {user.nickname.clone()}
+                    }
+
+                    p {
+                        class: "text-s",
+                        "@{user.username}"
+                    }
+                }
+
+                div {
+                    button {
+                        class: "text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2",
+                        onclick: move |_| {
+                            let user_uuid = user.uuid;
+                            spawn(async move {
+                                match verify_private_chat(user_uuid).await {
+                                    Ok(chat_uuid) => {
+                                        navigator.replace(Route::ViewChat { uuid: chat_uuid.to_string() });
+                                    }
+                                    Err(e) => {
+                                        error!("Failed to verify or create private chat: {}", e);
+                                    }
                                 }
-                                Err(e) => {
-                                    error!("Failed to verify or create private chat: {}", e);
-                                }
-                            }
-                        });
-                    },
-                    "Message"
+                            });
+                        },
+                        "Message"
+                    }
                 }
             }
-        }
+        } }
     }
 }

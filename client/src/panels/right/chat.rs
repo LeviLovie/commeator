@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::{
     backend::{
         chat_users, delete_message, edit_message, get_chat, list_messages, my_user, send_message,
-    }, centrifugo::CentrifugoContext, components::{Avatar, Header, HeaderButtonBack, HeaderText, IconButton, SmallIconButton, Spinner}, panels::{LayoutContext, PanelLayout}, verify_uuid, Route
+    }, centrifugo::CentrifugoContext, components::{Avatar, Header, HeaderButtonBack, HeaderText, IconButton, Spinner}, panels::{LayoutContext, PanelLayout}, verify_uuid, Route
 };
 use utils::{
     LogError,
@@ -57,6 +57,47 @@ pub fn RightChat(uuid: String) -> Element {
         use_context_provider(|| default_interaction);
     }
 
+    use_effect({
+        if match state.read().clone() {
+            ChatState::Uninitialized => true,
+            ChatState::Loading => false,
+            ChatState::Loaded {
+                uuid: current_uuid, ..
+            } => current_uuid != uuid,
+        } {
+            *state.write() = ChatState::Loading;
+
+            spawn(async move {
+                let chat = get_chat(uuid)
+                    .await
+                    .log_error()
+                    .expect("Failed to fetch chat");
+                let members = chat_users(uuid)
+                    .await
+                    .log_error()
+                    .expect("Failed to fetch chat users");
+                let my_user = my_user()
+                    .await
+                    .log_error()
+                    .expect("Failed to fetch my user");
+                let messages = list_messages(uuid)
+                    .await
+                    .log_error()
+                    .expect("Failed to fetch messages");
+
+                *state.write() = ChatState::Loaded {
+                    uuid,
+                    chat,
+                    members,
+                    my_user,
+                    messages,
+                };
+            });
+        }
+
+        || {}
+    });
+
     spawn(async move {
         centrifugo
             .client
@@ -105,47 +146,6 @@ pub fn RightChat(uuid: String) -> Element {
                 }
             }
         }
-    });
-
-    use_effect({
-        if match state.read().clone() {
-            ChatState::Uninitialized => true,
-            ChatState::Loading => false,
-            ChatState::Loaded {
-                uuid: current_uuid, ..
-            } => current_uuid != uuid,
-        } {
-            *state.write() = ChatState::Loading;
-
-            spawn(async move {
-                let chat = get_chat(uuid)
-                    .await
-                    .log_error()
-                    .expect("Failed to fetch chat");
-                let members = chat_users(uuid)
-                    .await
-                    .log_error()
-                    .expect("Failed to fetch chat users");
-                let my_user = my_user()
-                    .await
-                    .log_error()
-                    .expect("Failed to fetch my user");
-                let messages = list_messages(uuid)
-                    .await
-                    .log_error()
-                    .expect("Failed to fetch messages");
-
-                *state.write() = ChatState::Loaded {
-                    uuid,
-                    chat,
-                    members,
-                    my_user,
-                    messages,
-                };
-            });
-        }
-
-        || {}
     });
 
     match &*state.read() {
