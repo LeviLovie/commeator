@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::{components::IconButton, Route};
+use crate::{Route, components::IconButton};
 
 #[component]
 pub fn NavBar() -> Element {

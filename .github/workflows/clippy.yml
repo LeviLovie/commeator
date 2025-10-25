@@ -14,10 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        project: [server, client]
+        dir: [server, client, utils]
     defaults:
       run:
-        working-directory: ${{ matrix.project }}
+        working-directory: ${{ matrix.dir }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
