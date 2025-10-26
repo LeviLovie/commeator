@@ -1,8 +1,14 @@
 use async_once_cell::OnceCell;
 
 #[cfg(debug_assertions)]
+const ENV_FILE: &str = ".env";
+#[cfg(not(debug_assertions))]
+#[allow(dead_code)]
+const ENV_FILE: &str = ".env.prod";
+
+#[cfg(debug_assertions)]
 pub fn env_value(key: &str) -> String {
-    if let Err(e) = dotenvy::from_filename(".env") {
+    if let Err(e) = dotenvy::from_filename(ENV_FILE) {
         panic!("Failed to read .env: {}", e);
     }
 
@@ -113,7 +119,6 @@ static WEB_CONFIG: OnceCell<serde_json::Value> = OnceCell::new();
 
 #[cfg(feature = "client")]
 #[cfg(target_arch = "wasm32")]
-#[allow(dead_code)]
 pub async fn web_config() -> serde_json::Value {
     WEB_CONFIG
         .get_or_init(async {
@@ -133,13 +138,12 @@ pub async fn web_config() -> serde_json::Value {
 
 #[cfg(feature = "client")]
 #[cfg(not(target_arch = "wasm32"))]
-#[allow(dead_code)]
 pub async fn web_config() -> serde_json::Value {
     WEB_CONFIG
         .get_or_init(async {
             tracing::warn!("Fetching web config from /endpoints");
             reqwest::Client::new()
-                .get("/endpoints")
+                .get("https://app.commeator.org/endpoints")
                 .header("Cache-Control", "no-cache")
                 .send()
                 .await
@@ -181,7 +185,7 @@ pub async fn auth_return_to() -> String {
         let config = web_config().await;
         config["return"]
             .as_str()
-            .expect("auth not found in web config")
+            .expect("return not found in web config")
             .trim_end_matches('/')
             .to_string()
     }

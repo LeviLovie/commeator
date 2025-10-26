@@ -9,7 +9,12 @@ struct LocalStorage {
 
 fn storage_path() -> PathBuf {
     let mut path = config_dir().unwrap_or_else(|| PathBuf::from("."));
+
+    #[cfg(debug_assertions)]
+    path.push("commeator-dev");
+    #[cfg(not(debug_assertions))]
     path.push("commeator");
+
     fs::create_dir_all(&path).unwrap();
     path.push("storage.json");
     path

@@ -15,6 +15,10 @@ b_macos:
         dx build --macos
     cp config/macos/Info.plist client/target/dx/commeator/debug/macos/Commeator.app/Contents/Info.plist
 
+# Publish the macos client
+p_macos:
+    @sh ./scripts/p_macos.sh
+
 # Run the server locally
 server:
     cd server && cargo run
