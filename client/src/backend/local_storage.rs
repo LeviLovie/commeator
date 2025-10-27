@@ -32,8 +32,11 @@ pub fn save_jwt(token: &str) {
 pub fn load_jwt() -> Option<String> {
     let path = storage_path();
     if !path.exists() {
+        dioxus::prelude::warn!("No local storage file found at {:?}", path);
+        std::fs::create_dir_all(path.parent().unwrap()).ok()?;
         return None;
     }
+
     let data = fs::read_to_string(path).ok()?;
     let storage: LocalStorage = serde_json::from_str(&data).ok()?;
     storage.jwt

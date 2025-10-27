@@ -28,16 +28,9 @@ pub async fn get_kratos_user() -> Option<KratosUserData> {
 pub async fn get_kratos_user() -> Option<KratosUserData> {
     use crate::backend::get_jwt;
 
-    if get_jwt().await.is_none()
-        && let Err(e) = open::that(
-            format!(
-                "{}?return_to={}",
-                on_auth_base_url(URI_LOGIN).await,
-                utils::config::auth_return_to().await
-            )
-        )
-    {
-        error!("Failed to open browser for login: {}", e);
+    if get_jwt().await.is_none() {
+        warn!("No JWT found when trying to get Kratos user");
+        return None;
     }
 
     Some(KratosUserData {

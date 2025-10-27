@@ -200,6 +200,32 @@ pub async fn new_group(title: String, members: Vec<Uuid>) -> Result<Uuid> {
     Ok(response.0)
 }
 
+#[cfg(target_arch = "wasm32")]
+pub async fn natives_authenticate(key: Uuid) -> Result<()> {
+    let request = NativesAuthenticateRequest(key);
+    let response = Request::post(&on_api_base_url(natives::IP_AUTHENTICATE).await)
+        .add_body_from_json(&request)
+        .add_jwt()
+        .await
+        .build()
+        .send_decode::<NativesAuthenticateResponse>()
+        .await?;
+    Ok(())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub async fn natives_is_authenticated(key: Uuid) -> Result<Option<String>> {
+    let request = NativesIsAuthenticatedRequest(key);
+    let response = Request::post(&on_api_base_url(natives::IP_IS_AUTHENTICATED).await)
+        .add_body_from_json(&request)
+        .add_jwt()
+        .await
+        .build()
+        .send_decode::<NativesIsAuthenticatedResponse>()
+        .await?;
+    Ok(response.0)
+}
+
 pub async fn list_messages(chat_uuid: Uuid) -> Result<Vec<MessageInfo>> {
     let request = ListMessagesRequest(chat_uuid);
     let response = Request::post(&on_api_base_url(messages::IP_LIST).await)

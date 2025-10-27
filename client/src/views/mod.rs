@@ -42,23 +42,36 @@ pub fn View(view_right: bool, left: Element, right: Element) -> Element {
         client: centrifugo.clone(),
     });
 
-    #[cfg(target_arch = "wasm32")]
-    use_effect({
-        move || {
-            let mut layout = use_context::<LayoutContext>().layout;
-            let width = web_sys::window()
-                .unwrap()
-                .inner_width()
-                .unwrap()
-                .as_f64()
-                .unwrap();
-            layout.set(if width >= 768.0 {
-                PanelLayout::Desktop
-            } else {
-                PanelLayout::Mobile
-            });
-        }
-    });
+    {
+        #[cfg(target_arch = "wasm32")]
+        use_effect({
+            move || {
+                let mut layout = use_context::<LayoutContext>().layout;
+                let width = web_sys::window()
+                    .unwrap()
+                    .inner_width()
+                    .unwrap()
+                    .as_f64()
+                    .unwrap();
+                layout.set(if width >= 768.0 {
+                    PanelLayout::Desktop
+                } else {
+                    PanelLayout::Mobile
+                });
+            }
+        });
+
+        #[cfg(not(target_arch = "wasm32"))]
+        use_effect({
+            move || {
+                #[cfg(feature = "desktop")]
+                use_context::<LayoutContext>().layout.set(PanelLayout::Desktop);
+
+                #[cfg(feature = "mobile")]
+                use_context::<LayoutContext>().layout.set(PanelLayout::Mobile);
+            }
+        });
+    }
 
     let layout = use_context::<LayoutContext>().layout;
 

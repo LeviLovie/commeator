@@ -1,3 +1,5 @@
+set shell := ["bash", "-euxo", "pipefail", "-c"]
+
 help:
     @just --list
 
@@ -5,15 +7,22 @@ help:
 web:
     cd client && dx serve --web --port=8000
 
-# Run the macos client
-macos:
-    open ./client/target/dx/commeator/debug/macos/Commeator.app
-
 # Build the macos client
-b_macos:
+macos:
     cd client && \
-        dx build --macos
-    cp config/macos/Info.plist client/target/dx/commeator/debug/macos/Commeator.app/Contents/Info.plist
+        dx serve --macos
+
+# Build the ios client
+ios:
+    unset CC CXX CFLAGS CXXFLAGS SDKROOT LIBRARY_PATH CPATH PKG_CONFIG_PATH && \
+        export CC="$(xcrun --sdk iphonesimulator --find clang)" && \
+        export CXX="$(xcrun --sdk iphonesimulator --find clang++)" && \
+        export SDKROOT="$(xcrun --sdk iphonesimulator --show-sdk-path)" && \
+        export IPHONEOS_DEPLOYMENT_TARGET=16.0 && \
+        export LIBRARY_PATH="$SDKROOT/usr/lib" && \
+        export CPATH="$SDKROOT/usr/include" && \
+        cd client && \
+            dx serve --ios --release
 
 # Publish the macos client
 p_macos:

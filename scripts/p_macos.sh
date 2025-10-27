@@ -17,6 +17,9 @@ cecho() {
     echo -e "${color}${message}${reset}"
 }
 
+echo red "Cleaning up the old build..."
+rm -rf dist/macos
+
 cd client
 
 cecho blue "Building the MacOS app..."
@@ -24,14 +27,17 @@ dx build --macos --release
 
 cd ..
 
+mkdir -p dist/macos/
 cp -r client/target/dx/commeator/release/macos/Commeator.app dist/macos/
+rm dist/macos/Commeator.app/Contents/Info.plist
 cp config/macos/Info.plist dist/macos/Commeator.app/Contents/Info.plist
+cp config/macos/Commeator.entitlements dist/macos/
 
 cd dist/macos/
 
 cecho blue "Signing the app..."
 codesign --force --deep --options runtime \
-    --entitlements "./Commeator.entitlements" \
+    --entitlements "../../config/macos/Commeator.entitlements" \
     --sign "$SIGN" \
     Commeator.app
 

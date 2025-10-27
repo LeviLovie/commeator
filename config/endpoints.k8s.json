@@ -2,5 +2,5 @@
   "api": "http://localhost/api/",
   "auth": "http://localhost/auth/",
   "wss": "ws://localhost/wss/",
-  "return": "commeator://callback"
+  "web": "http:/localhost/"
 }

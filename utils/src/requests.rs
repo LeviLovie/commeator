@@ -98,3 +98,15 @@ pub struct ListUsersResponse(pub Vec<UserInfo>);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ChatUsersRequest(pub Uuid);
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct NativesAuthenticateRequest(pub Uuid);
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct NativesAuthenticateResponse {}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct NativesIsAuthenticatedRequest(pub Uuid);
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct NativesIsAuthenticatedResponse(pub Option<String>);

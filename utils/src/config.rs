@@ -58,6 +58,22 @@ pub mod endpoints {
         pub const URI_WHOAMI: &str = "/sessions/whoami";
         pub const URI_LOGIN: &str = "/self-service/login/browser";
         pub const URI_LOGOUT: &str = "/self-service/logout/browser";
+        pub const URI_NATIVE_REDIRECT: &str = "/a/redirect";
+
+        #[cfg(feature = "client")]
+        #[cfg(not(target_arch = "wasm32"))]
+        pub async fn url_app_login(id: String) -> String {
+            let auth_url = super::super::on_auth_base_url(URI_LOGIN).await;
+            let redirect_base = super::super::on_web_base_url(URI_NATIVE_REDIRECT).await;
+
+            let return_to = format!("{}?id={}", redirect_base, id);
+            let encoded = urlencoding::encode(&return_to);
+
+            let url = format!("{}?return_to={}", auth_url, encoded);
+            println!("Login URL: {}", url);
+
+            url
+        }
 
         #[cfg(feature = "client")]
         pub async fn url_login_flow(flow_id: &str) -> String {
@@ -78,6 +94,11 @@ pub mod endpoints {
             );
             url
         }
+    }
+
+    pub mod natives {
+        pub const IP_AUTHENTICATE: &str = "/natives/authenticate";
+        pub const IP_IS_AUTHENTICATED: &str = "/natives/is_authenticated";
     }
 
     pub mod jwt {
@@ -179,19 +200,19 @@ pub fn auth_base_url() -> String {
 }
 
 #[cfg(feature = "client")]
-pub async fn auth_return_to() -> String {
+pub async fn web_base_url() -> String {
     #[cfg(not(debug_assertions))]
     {
         let config = web_config().await;
-        config["return"]
+        config["web"]
             .as_str()
-            .expect("return not found in web config")
+            .expect("web not found in web config")
             .trim_end_matches('/')
             .to_string()
     }
     #[cfg(debug_assertions)]
     {
-        env!("AUTH_RETURN_TO").trim_end_matches('/').to_string()
+        env!("BASE_URL_WEB").trim_end_matches('/').to_string()
     }
 }
 
@@ -261,5 +282,13 @@ pub async fn on_auth_base_url(uri: &'static str) -> String {
 pub fn on_auth_base_url(uri: &'static str) -> String {
     let uri = uri.trim_start_matches('/');
     let url = format!("{}/{}", auth_base_url(), uri);
+    url
+}
+
+#[cfg(feature = "client")]
+pub async fn on_web_base_url(uri: &'static str) -> String {
+    let uri = uri.trim_start_matches('/');
+    let web_base_url = web_base_url().await;
+    let url = format!("{}/{}", web_base_url, uri);
     url
 }

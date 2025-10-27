@@ -1,4 +1,5 @@
 mod chats;
+mod natives;
 mod conn;
 mod error;
 mod jwt;
@@ -46,6 +47,10 @@ async fn main() {
             endpoints::jwt::IG_GENERATE_CENTRIFUGO,
             get(jwt::endpoint_generate_centrifugo),
         );
+
+    app = app
+        .route(endpoints::natives::IP_AUTHENTICATE, post(natives::authenticate))
+        .route(endpoints::natives::IP_IS_AUTHENTICATED, post(natives::is_authenticated));
 
     app = app
         .route(endpoints::chats::IG_LIST, get(chats::list_chats))
