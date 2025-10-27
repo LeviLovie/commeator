@@ -44,5 +44,6 @@ pub async fn logout() {
     use crate::{Route, backend::local_storage::delete_jwt};
 
     delete_jwt();
+    use_context::<crate::JwtContext>().jwt.set(None);
     navigator().replace(Route::ViewHome);
 }

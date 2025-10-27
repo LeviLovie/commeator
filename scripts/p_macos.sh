@@ -30,7 +30,6 @@ cd ..
 mkdir -p dist/macos/
 cp -r client/target/dx/commeator/release/macos/Commeator.app dist/macos/
 rm dist/macos/Commeator.app/Contents/Info.plist
-cp config/macos/Info.plist dist/macos/Commeator.app/Contents/Info.plist
 cp config/macos/Commeator.entitlements dist/macos/
 
 cd dist/macos/

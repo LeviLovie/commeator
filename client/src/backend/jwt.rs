@@ -11,22 +11,9 @@ use crate::{backend::Request, components::logout};
 #[cfg(target_arch = "wasm32")]
 pub static JWT: LazyLock<Mutex<Option<(String, NaiveDateTime)>>> =
     LazyLock::new(|| Mutex::new(None));
-#[cfg(not(target_arch = "wasm32"))]
-pub static JWT_REQUESTED: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex::new(false));
 
 pub static CENTRIFUGO_JWT: LazyLock<Mutex<Option<(String, NaiveDateTime)>>> =
     LazyLock::new(|| Mutex::new(None));
-
-#[cfg(not(target_arch = "wasm32"))]
-pub async fn is_jwt_requested() -> bool {
-    let guard = JWT_REQUESTED.lock().unwrap();
-    *guard
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub async fn jwt_requested() {
-    *JWT_REQUESTED.lock().unwrap() = true;
-}
 
 #[cfg(target_arch = "wasm32")]
 pub async fn get_jwt() -> Option<String> {
