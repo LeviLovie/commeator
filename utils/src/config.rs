@@ -1,8 +1,14 @@
 use async_once_cell::OnceCell;
 
 #[cfg(debug_assertions)]
+const ENV_FILE: &str = ".env";
+#[cfg(not(debug_assertions))]
+#[allow(dead_code)]
+const ENV_FILE: &str = ".env.prod";
+
+#[cfg(debug_assertions)]
 pub fn env_value(key: &str) -> String {
-    if let Err(e) = dotenvy::from_filename(".env") {
+    if let Err(e) = dotenvy::from_filename(ENV_FILE) {
         panic!("Failed to read .env: {}", e);
     }
 
@@ -52,6 +58,22 @@ pub mod endpoints {
         pub const URI_WHOAMI: &str = "/sessions/whoami";
         pub const URI_LOGIN: &str = "/self-service/login/browser";
         pub const URI_LOGOUT: &str = "/self-service/logout/browser";
+        pub const URI_NATIVE_REDIRECT: &str = "/a/redirect";
+
+        #[cfg(feature = "client")]
+        #[cfg(not(target_arch = "wasm32"))]
+        pub async fn url_app_login(id: String) -> String {
+            let auth_url = super::super::on_auth_base_url(URI_LOGIN).await;
+            let redirect_base = super::super::on_web_base_url(URI_NATIVE_REDIRECT).await;
+
+            let return_to = format!("{}?id={}", redirect_base, id);
+            let encoded = urlencoding::encode(&return_to);
+
+            let url = format!("{}?return_to={}", auth_url, encoded);
+            println!("Login URL: {}", url);
+
+            url
+        }
 
         #[cfg(feature = "client")]
         pub async fn url_login_flow(flow_id: &str) -> String {
@@ -72,6 +94,11 @@ pub mod endpoints {
             );
             url
         }
+    }
+
+    pub mod natives {
+        pub const IP_AUTHENTICATE: &str = "/natives/authenticate";
+        pub const IP_IS_AUTHENTICATED: &str = "/natives/is_authenticated";
     }
 
     pub mod jwt {
@@ -112,12 +139,32 @@ pub mod endpoints {
 static WEB_CONFIG: OnceCell<serde_json::Value> = OnceCell::new();
 
 #[cfg(feature = "client")]
-#[allow(dead_code)]
+#[cfg(target_arch = "wasm32")]
 pub async fn web_config() -> serde_json::Value {
     WEB_CONFIG
         .get_or_init(async {
             tracing::warn!("Fetching web config from /endpoints");
             gloo_net::http::Request::get("/endpoints")
+                .header("Cache-Control", "no-cache")
+                .send()
+                .await
+                .expect("Failed to fetch web config")
+                .json()
+                .await
+                .expect("Failed to parse web config")
+        })
+        .await
+        .clone()
+}
+
+#[cfg(feature = "client")]
+#[cfg(not(target_arch = "wasm32"))]
+pub async fn web_config() -> serde_json::Value {
+    WEB_CONFIG
+        .get_or_init(async {
+            tracing::warn!("Fetching web config from /endpoints");
+            reqwest::Client::new()
+                .get("https://app.commeator.org/endpoints")
                 .header("Cache-Control", "no-cache")
                 .send()
                 .await
@@ -150,6 +197,23 @@ pub async fn auth_base_url() -> String {
 #[cfg(not(feature = "client"))]
 pub fn auth_base_url() -> String {
     env_value("BASE_URL_AUTH").trim_end_matches('/').to_string()
+}
+
+#[cfg(feature = "client")]
+pub async fn web_base_url() -> String {
+    #[cfg(not(debug_assertions))]
+    {
+        let config = web_config().await;
+        config["web"]
+            .as_str()
+            .expect("web not found in web config")
+            .trim_end_matches('/')
+            .to_string()
+    }
+    #[cfg(debug_assertions)]
+    {
+        env!("BASE_URL_WEB").trim_end_matches('/').to_string()
+    }
 }
 
 #[cfg(feature = "client")]
@@ -218,5 +282,13 @@ pub async fn on_auth_base_url(uri: &'static str) -> String {
 pub fn on_auth_base_url(uri: &'static str) -> String {
     let uri = uri.trim_start_matches('/');
     let url = format!("{}/{}", auth_base_url(), uri);
+    url
+}
+
+#[cfg(feature = "client")]
+pub async fn on_web_base_url(uri: &'static str) -> String {
+    let uri = uri.trim_start_matches('/');
+    let web_base_url = web_base_url().await;
+    let url = format!("{}/{}", web_base_url, uri);
     url
 }

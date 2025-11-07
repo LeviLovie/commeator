@@ -1,5 +1,6 @@
 {
-  "api": "http://localhost/api/",
-  "auth": "http://localhost/auth/",
-  "wss": "ws://localhost/wss/"
+  "api": "http://localhost:8080/api/",
+  "auth": "http://localhost:8080/auth/",
+  "wss": "ws://localhost:8080/wss/",
+  "web": "http:/localhost:8080/"
 }

@@ -9,6 +9,9 @@ identity:
 
 selfservice:
   default_browser_return_url: http://localhost:8000/a/callback
+  allowed_return_urls:
+    - http://localhost:3000
+    - http://localhost:3000/a/callback
 
   methods:
     password:

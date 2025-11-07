@@ -5,7 +5,7 @@ use crate::{Route, components::Spinner, verify_user};
 
 #[component]
 pub fn ViewHome() -> Element {
-    let _ = verify_user!();
+    verify_user!();
     let navigator = navigator();
 
     use_effect(move || {

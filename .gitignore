@@ -1,3 +1,5 @@
 **/.DS_Store
+.env
 deploy.sh
 compose.prod.yaml
+dist

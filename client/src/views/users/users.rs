@@ -9,7 +9,7 @@ use crate::{
 
 #[component]
 pub fn ViewUsers() -> Element {
-    let _ = verify_user!();
+    verify_user!();
 
     rsx! {
         View {

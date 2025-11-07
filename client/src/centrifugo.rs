@@ -3,7 +3,13 @@ use futures::{SinkExt, StreamExt, lock::Mutex};
 use serde_json::Value;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
+#[cfg(target_arch = "wasm32")]
 use gloo_net::websocket::{Message, futures::WebSocket};
+
+#[cfg(not(target_arch = "wasm32"))]
+use reqwest::Client;
+#[cfg(not(target_arch = "wasm32"))]
+use reqwest_websocket::{Message, RequestBuilderExt, WebSocket};
 
 use crate::backend::get_centrifugo_jwt;
 use utils::{config::wss_base_url, updates::Update};
@@ -38,7 +44,18 @@ impl CentrifugoClient {
             base_url, token
         );
 
+        #[cfg(target_arch = "wasm32")]
         let mut ws = WebSocket::open(&ws_url).context("Failed to open WebSocket")?;
+        #[cfg(not(target_arch = "wasm32"))]
+        let mut ws = {
+            Client::default()
+                .get(&ws_url)
+                .upgrade()
+                .send()
+                .await?
+                .into_websocket()
+                .await?
+        };
 
         let connect_msg = serde_json::json!({
             "id": 1,

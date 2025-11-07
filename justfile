@@ -1,9 +1,35 @@
+set shell := ["bash", "-euxo", "pipefail", "-c"]
+
 help:
     @just --list
 
 # Run the client in web locally
 web:
     cd client && dx serve --web --port=8000
+
+# Build the macos client
+macos:
+    cd client && \
+        dx serve --macos
+
+# Build the ios client
+ios:
+    unset CC CXX CFLAGS CXXFLAGS SDKROOT LIBRARY_PATH CPATH PKG_CONFIG_PATH && \
+        export CC="$(xcrun --sdk iphonesimulator --find clang)" && \
+        export CXX="$(xcrun --sdk iphonesimulator --find clang++)" && \
+        export SDKROOT="$(xcrun --sdk iphonesimulator --show-sdk-path)" && \
+        export IPHONEOS_DEPLOYMENT_TARGET=16.0 && \
+        export LIBRARY_PATH="$SDKROOT/usr/lib" && \
+        export CPATH="$SDKROOT/usr/include" && \
+        cd client && \
+            dx serve --ios --release
+
+# Publish the macos client
+p_macos:
+    @sh ./scripts/p_macos.sh
+
+p_ios:
+    @sh ./scripts/p_ios.sh
 
 # Run the server locally
 server:

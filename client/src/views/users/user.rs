@@ -8,7 +8,7 @@ use crate::{
 
 #[component]
 pub fn ViewUser(username: String) -> Element {
-    let _ = verify_user!();
+    verify_user!();
 
     rsx! {
         View {

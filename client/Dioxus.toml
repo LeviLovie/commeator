@@ -1,4 +1,7 @@
 [application]
+identifier = "org.commeator.app"
+name = "Commeator"
+version = "0.0.1"
 
 [web.app]
 title = "Commeator"

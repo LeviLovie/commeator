@@ -8,7 +8,7 @@ use crate::{
 
 #[component]
 pub fn ViewSettingsAccount() -> Element {
-    let _ = verify_user!();
+    verify_user!();
 
     rsx! {
         View {

@@ -14,6 +14,7 @@ use crate::{
 use utils::{
     LogError,
     data::{ChatInfo, MessageInfo, UserInfo},
+    sleep_ms,
     updates::Update,
 };
 
@@ -106,7 +107,7 @@ pub fn RightChat(uuid: String) -> Element {
 
     spawn(async move {
         loop {
-            gloo_timers::future::TimeoutFuture::new(100).await;
+            sleep_ms(100).await;
 
             let updates = CHAT_UPDATES.read().clone();
             if !updates.is_empty() {
