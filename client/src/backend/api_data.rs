@@ -33,11 +33,12 @@ impl<T> ApiData<T> {
     }
 }
 
-pub fn use_api_data<T, F, Fut>(load_fn: F) -> Signal<ApiData<T>>
+pub fn use_api_data<T, E, F, Fut>(load_fn: F) -> Signal<ApiData<T>>
 where
     T: 'static + Clone + PartialEq,
+    E: ToString + 'static,
     F: Fn() -> Fut + Copy + 'static,
-    Fut: Future<Output = Result<T>> + 'static,
+    Fut: Future<Output = Result<T, E>> + 'static,
 {
     let data = use_signal(|| ApiData::loading());
 
