@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hydra
+  labels:
+    app: hydra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hydra
+  template:
+    metadata:
+      labels:
+        app: hydra
+    spec:
+      containers:
+        - name: hydra
+          image: oryd/hydra:v2.2
+          ports:
+            - containerPort: 4444
+          envFrom:
+            - configMapRef:
+                name: hydra-env
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hydra-env
+data:
+  LOG_LEVEL: warn
+  DSN: memory
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: hydra
+  labels:
+    app: hydra
+spec:
+  selector:
+    app: hydra
+  ports:
+    - name: public
+      port: 4444
+      targetPort: 4444
+  type: ClusterIP

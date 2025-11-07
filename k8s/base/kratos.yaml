@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kratos
+  labels:
+    app: kratos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kratos
+  template:
+    metadata:
+      labels:
+        app: kratos
+    spec:
+      containers:
+        - name: kratos
+          image: oryd/kratos:v1.3.1
+          args: ["serve", "-c", "/etc/config/kratos/kratos.yml"]
+          ports:
+            - containerPort: 4433
+          envFrom:
+            - configMapRef:
+                name: kratos-env
+          volumeMounts:
+            - name: kratos-config
+              mountPath: /etc/config/kratos/kratos.yml
+              subPath: kratos.yml
+              readOnly: true
+            - name: kratos-schema
+              mountPath: /etc/config/kratos/identity.schema.json
+              subPath: identity.schema.json
+              readOnly: true
+      volumes:
+        - name: kratos-config
+          secret:
+            secretName: kratos-config
+        - name: kratos-schema
+          configMap:
+            name: kratos-schema
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: kratos
+  labels:
+    app: kratos
+spec:
+  selector:
+    app: kratos
+  ports:
+    - name: public
+      port: 4433
+      targetPort: 4433
+  type: ClusterIP
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kratos-env
+data:
+  LOG_LEVEL: info
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kratos-schema
+data:
+  identity.schema.json: |
+    {
+      "$id": "https://example.com/identity.schema.json",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Person",
+      "type": "object",
+      "properties": {
+        "traits": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "object",
+              "properties": {
+                "first": {
+                  "type": "string"
+                },
+                "last": {
+                  "type": "string"
+                }
+              },
+              "required": []
+            },
+            "email": {
+              "type": "string",
+              "format": "email"
+            },
+            "hd": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "email"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }

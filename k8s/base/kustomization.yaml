@@ -1,0 +1,6 @@
+resources:
+  - centrifugo.yaml
+  - kratos.yaml
+  - postgres.yaml
+  - server.yaml
+  - web.yaml
