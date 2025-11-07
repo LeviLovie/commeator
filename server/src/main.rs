@@ -1,9 +1,9 @@
 mod chats;
-mod natives;
 mod conn;
 mod error;
 mod jwt;
 mod messages;
+mod natives;
 mod users;
 mod verify_kratos;
 
@@ -49,8 +49,14 @@ async fn main() {
         );
 
     app = app
-        .route(endpoints::natives::IP_AUTHENTICATE, post(natives::authenticate))
-        .route(endpoints::natives::IP_IS_AUTHENTICATED, post(natives::is_authenticated));
+        .route(
+            endpoints::natives::IP_AUTHENTICATE,
+            post(natives::authenticate),
+        )
+        .route(
+            endpoints::natives::IP_IS_AUTHENTICATED,
+            post(natives::is_authenticated),
+        );
 
     app = app
         .route(endpoints::chats::IG_LIST, get(chats::list_chats))

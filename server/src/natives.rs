@@ -1,16 +1,17 @@
-use std::sync::{LazyLock, Mutex};
-use anyhow::{Context};
+use anyhow::Context;
 use axum::{
     http::HeaderMap,
     response::{IntoResponse, Response},
     Json,
 };
 use sea_orm::prelude::Uuid;
+use std::sync::{LazyLock, Mutex};
 
 use crate::{jwt, verify_jwt, AppError};
-use utils::{requests::{
-        NativesAuthenticateRequest, NativesAuthenticateResponse, NativesIsAuthenticatedRequest, NativesIsAuthenticatedResponse
-    }};
+use utils::requests::{
+    NativesAuthenticateRequest, NativesAuthenticateResponse, NativesIsAuthenticatedRequest,
+    NativesIsAuthenticatedResponse,
+};
 
 static NATIVE_KEYS: LazyLock<Mutex<Vec<(Uuid, String)>>> = LazyLock::new(|| Mutex::new(Vec::new()));
 
@@ -38,10 +39,11 @@ pub async fn is_authenticated(
             Ok(Json(response).into_response())
         }
         Some((uuid, _)) => {
-            let jwt = jwt::generate(*uuid).await.context("Failed to generate JWT")?;
+            let jwt = jwt::generate(*uuid)
+                .await
+                .context("Failed to generate JWT")?;
             let response = NativesIsAuthenticatedResponse(Some(jwt.0));
             Ok(Json(response).into_response())
         }
     }
 }
-
