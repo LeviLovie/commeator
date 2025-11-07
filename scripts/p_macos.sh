@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
+DIST_DIR="dist/macos"
+APP_DIR="${DIST_DIR}/Commeator.app"
+BUILD_DIR="client/target/dx/commeator/release/macos"
+CONFIG_DIR="config/macos"
+
 cecho() {
     local color=$1
     local message=$2
@@ -18,80 +23,56 @@ cecho() {
 }
 
 echo red "Cleaning up the old build..."
-rm -rf dist/macos
-
-cd client
+rm -rf "${DIST_DIR}"
+mkdir -p "${DIST_DIR}/"
 
 cecho blue "Building the MacOS app..."
-dx build --macos --release
 
-cd ..
+cecho blue "Building for arm64..."
+cd client && dx build --macos --release --target aarch64-apple-darwin && cd ..
+ARM64_EXEC="${DIST_DIR}/commeator-arm64"
+mv "client/target/dx/commeator/release/macos/Commeator.app/Contents/MacOS/commeator" "$ARM64_EXEC"
 
-mkdir -p dist/macos/
-cp -r client/target/dx/commeator/release/macos/Commeator.app dist/macos/
-rm dist/macos/Commeator.app/Contents/Info.plist
-cp config/macos/Commeator.entitlements dist/macos/
+cecho blue "Building for x86_64..."
+cd client && dx build --macos --release --target x86_64-apple-darwin && cd ..
+X64_EXEC="${DIST_DIR}/commeator-x64"
+mv "client/target/dx/commeator/release/macos/Commeator.app/Contents/MacOS/commeator" "$X64_EXEC"
 
-cd dist/macos/
+cp -r client/target/dx/commeator/release/macos/Commeator.app "${DIST_DIR}/"
+
+cecho blue "Combining binaries into universal..."
+lipo -create "${X64_EXEC}" "${ARM64_EXEC}" -output "${APP_DIR}/Contents/MacOS/commeator"
+
+cecho blue "Generating manifests..."
+rm "${DIST_DIR}/Commeator.app/Contents/Info.plist"
+cp "${CONFIG_DIR}/Info.plist" "${APP_DIR}/Contents/"
+cp "${CONFIG_DIR}/Commeator.entitlements" "${APP_DIR}/Contents/"
+cp "${CONFIG_DIR}/embedded.provisionprofile" "${APP_DIR}/Contents/"
+
+cecho blue "Generating icons..."
+mkdir -p "${APP_DIR}/Contents/AppIcons.iconset"
+sips -Z 16   config/icon.png --out "${APP_DIR}/Contents/AppIcons.iconset/icon_16x16.png"
+sips -Z 32   config/icon.png --out "${APP_DIR}/Contents/AppIcons.iconset/icon_16x16@2x.png"
+sips -Z 32   config/icon.png --out "${APP_DIR}/Contents/AppIcons.iconset/icon_32x32.png"
+sips -Z 64   config/icon.png --out "${APP_DIR}/Contents/AppIcons.iconset/icon_32x32@2x.png"
+sips -Z 128  config/icon.png --out "${APP_DIR}/Contents/AppIcons.iconset/icon_128x128.png"
+sips -Z 256  config/icon.png --out "${APP_DIR}/Contents/AppIcons.iconset/icon_128x128@2x.png"
+sips -Z 256  config/icon.png --out "${APP_DIR}/Contents/AppIcons.iconset/icon_256x256.png"
+sips -Z 512  config/icon.png --out "${APP_DIR}/Contents/AppIcons.iconset/icon_256x256@2x.png"
+sips -Z 512  config/icon.png --out "${APP_DIR}/Contents/AppIcons.iconset/icon_512x512.png"
+sips -Z 1024 config/icon.png --out "${APP_DIR}/Contents/AppIcons.iconset/icon_512x512@2x.png"
+iconutil -c icns "${APP_DIR}/Contents/AppIcons.iconset" -o "${APP_DIR}/Contents/Resources/AppIcons.icns"
+rm -rf "${APP_DIR}/Contents/AppIcons.iconset"
+
+xattr -cr "${DIST_DIR}/Commeator.app"
 
 cecho blue "Signing the app..."
 codesign --force --deep --options runtime \
-    --entitlements "../../config/macos/Commeator.entitlements" \
-    --sign "$SIGN" \
-    Commeator.app
+    --sign "${SIGN}" \
+    --entitlements "${CONFIG_DIR}/Commeator.entitlements" \
+    "${DIST_DIR}/Commeator.app"
 
-cecho blue "Notorizing the app with Apple..."
-zip -r Commeator.zip Commeator.app
-xcrun notarytool submit Commeator.zip \
-    --apple-id "$ICLOUD" \
-    --team-id "$TEAMID" \
-    --password "$PASS" \
-    --wait
-
-cecho blue "Stapling the notarization ticket to the app..."
-xcrun stapler staple Commeator.app
-
-echo ""
-cecho yellow "Verify the notarization status:"
-echo ""
-spctl --assess --verbose Commeator.app
-
-echo ""
-read -r -p "$(cecho yellow 'Accepted? [y/N] ')" response
-case "$response" in
-    [yY][eE][sS]|[yY])
-        echo ""
-        true
-        ;;
-    *)
-        echo "Notorization did not succeed :("
-        exit 1
-        ;;
-esac
-
-cecho blue "Creating the DMG installer..."
-create-dmg \
-    --volname "Commeator Installer" \
-    --window-pos 200 120 \
-    --window-size 600 400 \
-    --icon-size 100 \
-    --icon Commeator.app 175 120 \
-    --hide-extension Commeator.app \
-    --app-drop-link 425 120 \
-    Commeator.dmg \
-    Commeator.app
-
-cecho blue "Signing the DMG installer..."
-codesign --sign "$SIGN" --timestamp Commeator.dmg
-
-cecho blue "Notorizing the DMG installer with Apple..."
-xcrun notarytool submit Commeator.dmg \
-    --apple-id "$ICLOUD" \
-    --team-id "$TEAMID" \
-    --password "$PASS" \
-    --wait
-
-cecho blue "Stapling the notarization ticket to the DMG installer..."
-xcrun stapler staple Commeator.dmg
-
-cecho green "Complete! at $(pwd)/Commeator.dmg"
+productbuild \
+  --component ${DIST_DIR}/Commeator.app /Applications \
+  --sign "${PKG_SIGN}" \
+  dist/macos/Commeator.pkg

@@ -8,9 +8,7 @@ use utils::{
 
 use crate::{backend::Request, components::logout};
 
-#[cfg(target_arch = "wasm32")]
-pub static JWT: LazyLock<Mutex<Option<(String, NaiveDateTime)>>> =
-    LazyLock::new(|| Mutex::new(None));
+pub static JWT: LazyLock<Mutex<Option<String>>> = LazyLock::new(|| Mutex::new(None));
 
 pub static CENTRIFUGO_JWT: LazyLock<Mutex<Option<(String, NaiveDateTime)>>> =
     LazyLock::new(|| Mutex::new(None));
@@ -24,12 +22,11 @@ pub async fn get_jwt() -> Option<String> {
 
     match jwt {
         None => regenerate_jwt().await,
-        Some((_, expires_at)) if expires_at <= Utc::now().naive_utc() => regenerate_jwt().await,
         _ => {}
     };
 
     if let Some(token) = JWT.lock().unwrap().as_ref() {
-        Some(token.0.clone())
+        Some(token.clone())
     } else {
         error!("JWT is still None after regeneration attempt");
         None
@@ -38,7 +35,24 @@ pub async fn get_jwt() -> Option<String> {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub async fn get_jwt() -> Option<String> {
-    super::local_storage::load_jwt()
+    let jwt = {
+        let guard = JWT.lock().unwrap();
+        guard.clone()
+    };
+
+    match jwt {
+        None => match super::local_storage::load_jwt() {
+            Some(token) => {
+                *JWT.lock().unwrap() = Some(token.clone());
+                Some(token)
+            }
+            None => {
+                logout().await;
+                None
+            }
+        },
+        Some(token) => Some(token),
+    }
 }
 
 pub async fn get_centrifugo_jwt() -> Option<String> {

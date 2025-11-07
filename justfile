@@ -28,6 +28,9 @@ ios:
 p_macos:
     @sh ./scripts/p_macos.sh
 
+p_ios:
+    @sh ./scripts/p_ios.sh
+
 # Run the server locally
 server:
     cd server && cargo run

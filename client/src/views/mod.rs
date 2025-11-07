@@ -65,10 +65,14 @@ pub fn View(view_right: bool, left: Element, right: Element) -> Element {
         use_effect({
             move || {
                 #[cfg(feature = "desktop")]
-                use_context::<LayoutContext>().layout.set(PanelLayout::Desktop);
+                use_context::<LayoutContext>()
+                    .layout
+                    .set(PanelLayout::Desktop);
 
                 #[cfg(feature = "mobile")]
-                use_context::<LayoutContext>().layout.set(PanelLayout::Mobile);
+                use_context::<LayoutContext>()
+                    .layout
+                    .set(PanelLayout::Mobile);
             }
         });
     }

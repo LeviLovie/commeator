@@ -96,6 +96,7 @@ impl Request {
         };
         let response = request.send().await.map_err(|e| anyhow!(e.to_string()))?;
         if !response.status().is_success() {
+            crate::components::logout().await;
             bail!("Request failed with status: {}", response.status())
         }
 

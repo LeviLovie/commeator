@@ -15,9 +15,7 @@ use dioxus::{logger::tracing::Level, prelude::*};
 use auth::*;
 use views::*;
 
-use crate::{
-    components::{CenteredForm, CenteredText},
-};
+use crate::components::{CenteredForm, CenteredText};
 
 #[derive(Clone, Routable, PartialEq)]
 #[rustfmt::skip]
@@ -124,8 +122,15 @@ fn App() -> Element {
 #[cfg(not(target_arch = "wasm32"))]
 fn RootLayout() -> Element {
     let jwt = use_context::<JwtContext>().jwt;
+    let mut authentication_started = use_signal(|| false);
 
     use_effect(move || {
+        if authentication_started() {
+            info!("Authentication flow already started, skipping");
+            return;
+        }
+        authentication_started.set(true);
+
         let jwt_value = jwt();
         let mut jwt = jwt;
         spawn(async move {
@@ -138,7 +143,10 @@ fn RootLayout() -> Element {
             let request_uuid = use_signal(uuid::Uuid::new_v4);
 
             spawn(async move {
-                if let Err(e) = webbrowser::open(&utils::config::endpoints::auth::url_app_login(request_uuid().to_string()).await) {
+                if let Err(e) = webbrowser::open(
+                    &utils::config::endpoints::auth::url_app_login(request_uuid().to_string())
+                        .await,
+                ) {
                     error!("Failed to open web browser for login: {}", e);
                 } else {
                     info!("Opened web browser for login");
@@ -156,7 +164,10 @@ fn RootLayout() -> Element {
                         break;
                     }
                     Ok(None) => {
-                        info!("Native authentication not yet completed, attempt {}/32", i + 1);
+                        info!(
+                            "Native authentication not yet completed, attempt {}/32",
+                            i + 1
+                        );
                     }
                     Err(e) => {
                         error!("Error checking native authentication: {}", e);
@@ -168,7 +179,7 @@ fn RootLayout() -> Element {
     });
 
     match jwt() {
-        Some(_) => rsx!{
+        Some(_) => rsx! {
             Outlet::<Route> {}
         },
         None => rsx! {
@@ -178,7 +189,7 @@ fn RootLayout() -> Element {
                 }
                 // NotFullHeightSpinner {}
             }
-        }
+        },
     }
 }
 

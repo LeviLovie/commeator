@@ -95,6 +95,7 @@ pub async fn endpoint_generate(headers: HeaderMap) -> Result<Response, AppError>
 
 pub async fn endpoint_verify(headers: HeaderMap) -> Result<Response, AppError> {
     let correct = verify_jwt(&headers).await.is_ok();
+    tracing::info!("JWT verification result: {}", correct);
 
     let response = VerifyJwtResponse(correct);
     Ok(Json(response).into_response())
