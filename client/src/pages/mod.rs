@@ -1,6 +1,8 @@
+mod auth;
 mod left;
 mod right;
 
+pub use auth::*;
 pub use left::*;
 pub use right::*;
 

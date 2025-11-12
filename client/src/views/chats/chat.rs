@@ -7,14 +7,22 @@ use crate::{
 };
 
 #[component]
-pub fn ViewChat(uuid: String) -> Element {
+pub fn ViewChat(uuid: Option<String>) -> Element {
     verify_user!();
 
     rsx! {
         View {
             view_right: true,
             left: rsx! { LeftChats {} },
-            right: rsx! { RightChat { uuid } },
+            right: rsx! {
+                { if let Some(uuid) = uuid.clone() {
+                    RightChat { uuid }
+                } else {
+                    CenteredText {
+                        text: "Select a chat to start messeging"
+                    }
+                } }
+            }
         }
     }
 }
