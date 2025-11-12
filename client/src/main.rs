@@ -121,37 +121,23 @@ fn App() -> Element {
 #[component]
 #[cfg(not(target_arch = "wasm32"))]
 fn RootLayout() -> Element {
-    let jwt = use_context::<JwtContext>().jwt;
-    let mut authentication_started = use_signal(|| false);
+    let mut jwt = use_context::<JwtContext>().jwt;
 
     use_effect(move || {
-        if authentication_started() {
-            info!("Authentication flow already started, skipping");
-            return;
-        }
-        authentication_started.set(true);
+        info!("Starting native authentication flow");
 
-        let jwt_value = jwt();
-        let mut jwt = jwt;
+        let request_uuid = uuid::Uuid::new_v4;
+
         spawn(async move {
-            info!("Starting native authentication flow");
-            if jwt_value.is_some() {
-                info!("JWT already present in local storage, skipping native authentication");
-                return;
+            info!("Opening web browser for native login");
+            if let Err(e) = webbrowser::open(
+                &utils::config::endpoints::auth::url_app_login(request_uuid().to_string())
+                    .await,
+            ) {
+                error!("Failed to open web browser for login: {}", e);
+            } else {
+                info!("Opened web browser for login");
             }
-
-            let request_uuid = use_signal(uuid::Uuid::new_v4);
-
-            spawn(async move {
-                if let Err(e) = webbrowser::open(
-                    &utils::config::endpoints::auth::url_app_login(request_uuid().to_string())
-                        .await,
-                ) {
-                    error!("Failed to open web browser for login: {}", e);
-                } else {
-                    info!("Opened web browser for login");
-                }
-            });
 
             for i in 0..32 {
                 match backend::natives_is_authenticated(request_uuid()).await {
@@ -187,7 +173,7 @@ fn RootLayout() -> Element {
                 CenteredText {
                     text: "Please log in via the opened browser window."
                 }
-                // NotFullHeightSpinner {}
+                components::NotFullHeightSpinner {}
             }
         },
     }

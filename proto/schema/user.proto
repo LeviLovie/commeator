@@ -1,0 +1,37 @@
+syntax = "proto3";
+package commeator;
+
+message User {
+  string uuid = 1;
+  string username = 2;
+  string nickname = 3;
+  string avatar = 4;
+}
+
+message GetUser {
+  string username = 1;
+}
+message GetUserResp {
+  User user = 1;
+}
+
+message MyUserResp {
+  User user = 1;
+}
+
+message SetupUser {
+  string username = 1;
+  string nickname = 2;
+  string avatar = 3;
+}
+message SetupUserResp {
+  enum SetupUserResult {
+    SUCCESS = 0;
+    USERNAME_TAKEN = 1;
+    INVALID_USERNAME = 2;
+    INVALID_NICKNAME = 3;
+  }
+
+  SetupUserResult result = 1;
+  optional User user = 2;
+}

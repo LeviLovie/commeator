@@ -1,31 +1,27 @@
-use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Response},
+use anyhow::Error;
+use rocket::{
+    http::Status,
+    response::{Responder, Response},
 };
 
-#[derive(Debug)]
-pub enum AppError {
-    Auth(anyhow::Error),
-    Internal(anyhow::Error),
-}
+pub type ApiResult<T> = Result<T, ApiError>;
 
-impl<E: Into<anyhow::Error>> From<E> for AppError {
-    fn from(err: E) -> Self {
-        AppError::Internal(err.into())
+pub struct ApiError(pub Error);
+
+impl<'r> Responder<'r, 'static> for ApiError {
+    fn respond_to(self, _req: &'r rocket::Request<'_>) -> rocket::response::Result<'static> {
+        println!("Error: {}", self.0);
+
+        for cause in self.0.chain().skip(1) {
+            eprintln!("  caused by: {}", cause);
+        }
+
+        Response::build().status(Status::InternalServerError).ok()
     }
 }
 
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        match self {
-            AppError::Auth(e) => {
-                eprintln!("Auth error: {e:?}");
-                (StatusCode::UNAUTHORIZED, "Unauthorized").into_response()
-            }
-            AppError::Internal(e) => {
-                eprintln!("Internal error: {e:?}");
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error").into_response()
-            }
-        }
+impl From<Error> for ApiError {
+    fn from(e: Error) -> Self {
+        ApiError(e)
     }
 }

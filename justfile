@@ -1,4 +1,5 @@
 set shell := ["bash", "-euxo", "pipefail", "-c"]
+set dotenv-load := true
 
 help:
     @just --list
@@ -74,7 +75,7 @@ m_new NAME:
 
 # Generate rust entity files from the database schema
 m_generate:
-    sea-orm-cli generate entity -o server/src/entities
+    sea-orm-cli generate entity -o server/src/entities --database-url postgresql://messenger:messenger@localhost/messenger
 
 # Build web as a local docker image
 d_build_web:

@@ -82,7 +82,7 @@ pub async fn get_centrifugo_jwt() -> Option<String> {
 async fn regenerate_jwt() {
     match generate_jwt().await {
         Ok(token) => {
-            *JWT.lock().unwrap() = Some(token);
+            *JWT.lock().unwrap() = Some(token.0);
         }
         Err(e) => {
             if e.to_string().contains("User not found") {

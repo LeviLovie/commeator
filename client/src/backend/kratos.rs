@@ -10,6 +10,7 @@ pub async fn try_get_kratos_user() -> Result<KratosUserData> {
     .build()
     .send_decode::<KratosUserData>()
     .await
+    .map_err(|e| e.into())
 }
 
 #[cfg(target_arch = "wasm32")]

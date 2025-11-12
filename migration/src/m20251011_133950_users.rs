@@ -5,7 +5,7 @@ pub enum Users {
     Table,
     Uuid,
     Email,
-    EmailHash,
+    Avatar,
     Username,
     Nickname,
     CreatedAt,
@@ -29,7 +29,7 @@ impl MigrationTrait for Migration {
                             .default(Expr::cust("uuid_generate_v4()"))
                     )
                     .col(text(Users::Email).not_null().unique_key())
-                    .col(text(Users::EmailHash).not_null().unique_key())
+                    .col(text(Users::Avatar).not_null())
                     .col(text(Users::Username).not_null())
                     .col(text(Users::Nickname).not_null())
                     .col(

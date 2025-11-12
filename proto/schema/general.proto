@@ -1,0 +1,6 @@
+syntax = "proto3";
+package commeator;
+
+message VersionRes {
+  string version = 1;
+}
