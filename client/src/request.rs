@@ -2,6 +2,8 @@ use anyhow::{Result, anyhow};
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 
+use crate::config::CONFIG;
+
 pub enum Method {
     Get,
     Post,
@@ -36,7 +38,7 @@ pub struct Request {
     pub url: String,
     pub method: Method,
     pub headers: HashMap<String, String>,
-    pub body: Option<String>,
+    pub body: Option<Vec<u8>>,
 }
 
 impl Request {
@@ -76,15 +78,12 @@ impl Request {
         } else {
             request.build()
         }?;
-        
+
         match request.send().await {
             Ok(response) => {
                 let status = response.status();
                 let body = response.binary().await?;
-                Ok(Response {
-                    status,
-                    body,
-                })
+                Ok(Response { status, body })
             }
             Err(e) => {
                 // TODO: Fix to return an actual error
@@ -143,7 +142,7 @@ pub struct RequestBuilder {
     pub url: String,
     pub method: Method,
     pub headers: HashMap<String, String>,
-    pub body: Option<String>,
+    pub body: Option<Vec<u8>>,
 }
 
 impl RequestBuilder {
@@ -152,8 +151,13 @@ impl RequestBuilder {
         self
     }
 
+    pub fn add_body(mut self, body: Vec<u8>) -> Self {
+        self.body = Some(body);
+        self
+    }
+
     pub fn add_json_body<T: serde::Serialize>(mut self, body: &T) -> Self {
-        self.body = Some(serde_json::to_string(body).unwrap());
+        self.body = Some(serde_json::to_string(body).unwrap().into());
         self.add_header("Content-Type", "application/json")
     }
 
@@ -171,6 +175,44 @@ impl RequestBuilder {
             body: self.body,
         }
     }
+}
+
+pub async fn backend<D: prost::Message, R: Default + prost::Message>(
+    url: impl Into<String>,
+    jwt: impl Into<String>,
+    data: D,
+) -> R {
+    let response = Request::post(format!("{}{}", CONFIG.url_api, url.into()))
+        .add_header("Content-Type", "application/x-protobuf")
+        .add_body(data.encode_to_vec())
+        .add_jwt(jwt.into())
+        .await
+        .build()
+        .send()
+        .await
+        .unwrap();
+    if response.status() != 200 {
+        panic!("Backend request failed with status: {}", response.status());
+    }
+    R::decode(&*response.raw()).unwrap()
+}
+
+pub async fn backend_get<R: Default + prost::Message>(
+    url: impl Into<String>,
+    jwt: impl Into<String>,
+) -> R {
+    let response = Request::post(format!("{}{}", CONFIG.url_api, url.into()))
+        .add_header("Content-Type", "application/x-protobuf")
+        .add_jwt(jwt.into())
+        .await
+        .build()
+        .send()
+        .await
+        .unwrap();
+    if response.status() != 200 {
+        panic!("Backend request failed with status: {}", response.status());
+    }
+    R::decode(&*response.raw()).unwrap()
 }
 
 // TODO: Add tests

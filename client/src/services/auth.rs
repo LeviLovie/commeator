@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime};
 use dioxus::{
     prelude::{debug, error, trace, warn},
     router::navigator,
@@ -7,18 +7,19 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     config::{AUTH_LOGIN, AUTH_LOGOUT, CONFIG},
+    request::{backend, backend_get},
     services,
 };
+use proto::{GenJwtResp, VerifyJwt, VerifyJwtResp};
 
 const FILE: &str = "auth.ron";
 const MAX_STEPS: u32 = 50;
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct File {
     jwt: Option<String>,
     expires: Option<NaiveDateTime>,
     regen: Option<NaiveDateTime>,
-    used: Option<NaiveDateTime>,
 }
 
 pub enum State {
@@ -45,14 +46,13 @@ impl Auth {
 
     pub async fn run(mut self) -> Self {
         debug!("Starting auth state machine");
-        debug!("Initial Auth State: {}", self.state);
         loop {
             if let State::Failed(msg) = self.state {
                 error!("Auth state machine failed: {}", msg);
                 panic!();
             }
 
-            if matches![self.state, State::AwaitCallback] || matches![self.state, State::Authenticated(_)] {
+            if matches![self.state, State::AwaitCallback | State::Authenticated(_)] {
                 break;
             }
 
@@ -64,46 +64,39 @@ impl Auth {
         self
     }
 
-    pub fn get_jwt(&self) -> Option<String> {
+    pub fn get_jwt(&self) -> String {
         match &self.state {
-            State::Authenticated(file) => file.jwt.clone(),
+            State::Authenticated(file) => file.jwt.clone().unwrap_or_default(),
             _ => {
                 warn!(
                     "Attempted to get JWT from unauthenticated state: {}",
                     self.state
                 );
-                None
+                String::new()
             }
         }
     }
 
     async fn step(&mut self) {
         match &self.state {
-            State::Save(file) => {
-                services::Storage::new()
-                    .save_block(FILE, file)
-                    .unwrap_or_else(|e| {
-                        self.state = State::Failed(format!("Failed to save auth file: {}", e));
-                    });
-            }
+            State::Save(file) => match services::Storage::new().save_block(FILE, &file) {
+                Ok(_) => self.state = State::Authenticated(file.clone()),
+                Err(e) => {
+                    self.state = State::Failed(format!("Failed to save auth file: {}", e));
+                }
+            },
             State::Load => match services::Storage::new().load_block::<File>(FILE) {
                 Ok(file) => {
                     self.state = State::VerifyJWT(file);
                 }
                 Err(e) => {
-                    trace!("No auth file found, fetching new credentials: {}", e);
+                    warn!("No auth file found, fetching new credentials: {}", e);
                     self.state = State::FetchKratos;
                 }
             },
             State::FetchKratos => match kratos::fetch().await {
-                Ok(Some(email)) => {
-                    debug!("Fetched Kratos credentials for email: {}", email);
-                    self.state = State::Authenticated(File {
-                        jwt: Some(email),
-                        expires: None,
-                        regen: None,
-                        used: None,
-                    });
+                Ok(Some(_)) => {
+                    self.state = State::GenJWT;
                 }
                 Ok(None) => {
                     self.state = State::Login;
@@ -113,8 +106,37 @@ impl Auth {
                         State::Failed(format!("Failed to fetch Kratos credentials: {}", e));
                 }
             },
-            State::VerifyJWT(file) => {}
-            State::GenJWT => {}
+            State::VerifyJWT(file) => {
+                let req = VerifyJwt {
+                    token: file.jwt.clone().unwrap_or_default(),
+                };
+                let verify_resp: VerifyJwtResp = backend("/j/verify", "", req).await;
+                if verify_resp.valid {
+                    dioxus::prelude::info!("Loaded valid JWT from storage");
+                    self.state = State::Authenticated(file.clone());
+                } else {
+                    dioxus::prelude::info!("Stored JWT is invalid or expired, generating new one");
+                    self.state = State::FetchKratos;
+                }
+            }
+            State::GenJWT => {
+                let jwt_resp: GenJwtResp = backend_get("/j/gen", "").await;
+                self.state = State::Save(File {
+                    jwt: Some(jwt_resp.token),
+                    expires: Some(
+                        DateTime::from_timestamp(
+                            jwt_resp
+                                .expires_at
+                                .parse()
+                                .expect("Invalid expiration timestamp"),
+                            0,
+                        )
+                        .unwrap()
+                        .naive_utc(),
+                    ),
+                    regen: Some(chrono::Utc::now().naive_utc()),
+                });
+            }
             State::Logout => {
                 self.state = State::AwaitCallback;
                 navigator().replace(format!("{}{}", CONFIG.url_auth, AUTH_LOGOUT));
@@ -124,7 +146,9 @@ impl Auth {
                 navigator().replace(format!("{}{}", CONFIG.url_auth, AUTH_LOGIN));
             }
             State::AwaitCallback => {}
-            State::Authenticated(_) => {}
+            State::Authenticated(file) => {
+                debug!("Authenticated with JWT: {:?}", file.jwt);
+            }
             State::Failed(msg) => {
                 error!("Auth state machine failed: {}", msg);
             }

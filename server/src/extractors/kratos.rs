@@ -4,18 +4,22 @@ use rocket::{
 };
 use serde::Deserialize;
 
+use crate::config::CONFIG;
+
+const AUTH_WHOAMI: &str = "/sessions/whoami";
+
 #[derive(Deserialize, Debug, Clone)]
-struct KratosUserData {
-    pub identity: KratosIdentity,
+pub struct KratosUserData {
+    pub identity: Identity,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-struct KratosIdentity {
-    pub traits: KratosTraits,
+pub struct Identity {
+    pub traits: Traits,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-struct KratosTraits {
+pub struct Traits {
     pub email: String,
 }
 
@@ -44,36 +48,37 @@ impl<'r> FromRequest<'r> for Kratos {
         };
 
         match verify_kratos_cookie(&cookie_value).await {
-            Ok(user) => Outcome::Success(Self {
-                email: user.identity.traits.email,
-            }),
+            Ok(Some(email)) => Outcome::Success(Self { email }),
+            Ok(None) => {
+                Outcome::Error((Status::Unauthorized, "Invalid Kratos session".to_string()))
+            }
             Err(e) => {
                 eprintln!("Kratos cookie verification error: {}", e);
-                Outcome::Error((Status::Unauthorized, "Cookie verification failed".to_string()))
+                Outcome::Error((
+                    Status::Unauthorized,
+                    "Cookie verification failed".to_string(),
+                ))
             }
         }
     }
 }
 
-async fn verify_kratos_cookie(cookie_value: &str) -> Result<KratosUserData, String> {
-    let url = format!(
-        "{}/sessions/whoami",
-        std::env::var("KRATOS_PUBLIC_URL").unwrap()
-    );
-
-    let client = reqwest::Client::new();
-    let res = client
-        .get(&url)
+async fn verify_kratos_cookie(cookie_value: &str) -> Result<Option<String>, String> {
+    let res = reqwest::Client::new()
+        .get(format!("{}{}", CONFIG.url_auth, AUTH_WHOAMI))
         .header("Cookie", format!("ory_kratos_session={}", cookie_value))
         .send()
         .await
         .map_err(|e| format!("Failed to call Kratos: {e}"))?;
 
     if !res.status().is_success() {
-        return Err(format!("Kratos verification failed: {}", res.status()));
+        return Ok(None);
     }
 
-    res.json::<KratosUserData>()
+    let user_data = res
+        .json::<KratosUserData>()
         .await
-        .map_err(|e| format!("Failed to parse Kratos response: {e}"))
+        .map_err(|e| format!("Failed to parse Kratos response: {e}"));
+
+    Ok(user_data.map(|data| Some(data.identity.traits.email))?)
 }

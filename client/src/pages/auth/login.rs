@@ -1,7 +1,11 @@
 use dioxus::prelude::*;
 use serde::Deserialize;
 
-use crate::{components::{CenteredForm, Spinner}, config::{AUTH_LOGIN_FLOW, CONFIG}, request::Request};
+use crate::{
+    components::{CenteredForm, Spinner},
+    config::{AUTH_LOGIN_FLOW, CONFIG},
+    request::Request,
+};
 
 #[derive(Deserialize, Debug, Clone)]
 struct RegistrationFlow {
@@ -36,12 +40,15 @@ pub fn AuthLogIn(flow: String) -> Element {
     let flow = use_resource(move || {
         let flow_id = flow_id.clone();
         async move {
-            match Request::get(format!("{}{}?id={}", CONFIG.url_auth, AUTH_LOGIN_FLOW, flow_id))
-                .build()
-                .send()
-                .await
-                .expect("Failed to fetch registration flow")
-                .json::<RegistrationFlow>()
+            match Request::get(format!(
+                "{}{}?id={}",
+                CONFIG.url_auth, AUTH_LOGIN_FLOW, flow_id
+            ))
+            .build()
+            .send()
+            .await
+            .expect("Failed to fetch registration flow")
+            .json::<RegistrationFlow>()
             {
                 Ok(flow) => Some(Ok(flow)),
                 Err(err) => Some(Err(err)),

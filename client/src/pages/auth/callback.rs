@@ -1,29 +1,20 @@
 use dioxus::prelude::*;
 
-use crate::components::Spinner;
+use crate::{Route, components::Spinner, request::backend_get};
+use proto::CheckUserResp;
 
 #[component]
 pub fn AuthCallback() -> Element {
-    // use_effect(move || {
-    //     spawn(async move {
-    //         match check_user().await {
-    //             Ok(exists) if exists => {
-    //                 navigator().replace(Route::ViewHome);
-    //             }
-    //             Ok(_) => {
-    //                 navigator().replace(Route::AuthProfileSetup);
-    //             }
-    //             Err(_) => {
-    //                 navigator().replace(Route::ViewHome);
-    //             }
-    //         }
-    //     });
-    // });
-    //
-    // use_future(|| async {
-    //     gloo_timers::future::TimeoutFuture::new(10_000).await;
-    //     navigator().replace(Route::ViewHome);
-    // });
+    use_effect(move || {
+        spawn(async move {
+            let resp: CheckUserResp = backend_get("/u/check", "").await;
+            if resp.exists {
+                navigator().replace(Route::ViewHome);
+            } else {
+                navigator().replace(Route::AuthProfileSetup);
+            }
+        });
+    });
 
     rsx! {
         Spinner {}

@@ -1,0 +1,17 @@
+syntax = "proto3";
+package commeator;
+
+message VerifyJwt {
+  string token = 1;
+}
+message VerifyJwtResp {
+  bool valid = 1;
+}
+
+message GenJwt {
+  string os = 1;
+}
+message GenJwtResp {
+  string token = 1;
+  string expires_at = 2;
+}

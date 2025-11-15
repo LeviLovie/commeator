@@ -9,6 +9,7 @@ pub struct Model {
     pub uuid: Uuid,
     #[sea_orm(column_type = "Text", unique)]
     pub email: String,
+    pub setup_complete: bool,
     #[sea_orm(column_type = "Text")]
     pub avatar: String,
     #[sea_orm(column_type = "Text")]
@@ -22,6 +23,8 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::chat_members::Entity")]
     ChatMembers,
+    #[sea_orm(has_many = "super::devices::Entity")]
+    Devices,
     #[sea_orm(has_many = "super::messages::Entity")]
     Messages,
 }
@@ -29,6 +32,12 @@ pub enum Relation {
 impl Related<super::chat_members::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::ChatMembers.def()
+    }
+}
+
+impl Related<super::devices::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Devices.def()
     }
 }
 

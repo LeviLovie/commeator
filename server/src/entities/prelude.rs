@@ -2,5 +2,6 @@
 
 pub use super::chat_members::Entity as ChatMembers;
 pub use super::chats::Entity as Chats;
+pub use super::devices::Entity as Devices;
 pub use super::messages::Entity as Messages;
 pub use super::users::Entity as Users;

@@ -460,6 +460,7 @@ dependencies = [
  "js-sys",
  "md5",
  "once_cell",
+ "prost",
  "proto",
  "reqwest",
  "reqwest-websocket",

@@ -24,22 +24,22 @@ enum Route {
         #[route("/redirect?:id")]
         AuthRedirect { id: String },
 
-        #[route("/setup")]
-        AuthProfileSetup,
-
         #[route("/login?:flow")]
         AuthLogIn { flow: String },
 
         #[route("/error?:id")]
         AuthError { id: String },
+
+        #[route("/callback")]
+        AuthCallback,
     #[end_nest]
 
     #[layout(AppStateLayout)]
         #[route("/")]
         ViewHome,
 
-        #[route("/callback")]
-        AuthCallback,
+        #[route("/a/setup")]
+        AuthProfileSetup,
 
         #[nest("/u")]
             #[route("/:username")]

@@ -5,10 +5,11 @@ pub enum Users {
     Table,
     Uuid,
     Email,
+    CreatedAt,
+    SetupComplete,
     Avatar,
     Username,
     Nickname,
-    CreatedAt,
 }
 
 #[derive(DeriveMigrationName)]
@@ -29,6 +30,11 @@ impl MigrationTrait for Migration {
                             .default(Expr::cust("uuid_generate_v4()"))
                     )
                     .col(text(Users::Email).not_null().unique_key())
+                    .col(
+                        boolean(Users::SetupComplete)
+                            .not_null()
+                            .default(false),
+                    )
                     .col(text(Users::Avatar).not_null())
                     .col(text(Users::Username).not_null())
                     .col(text(Users::Nickname).not_null())
