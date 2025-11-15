@@ -42,6 +42,9 @@ enum Route {
         AuthProfileSetup,
 
         #[nest("/u")]
+            #[route("/")]
+            ViewUsers {},
+
             #[route("/:username")]
             ViewUser { username: String },
         #[end_nest]

@@ -1,17 +1,14 @@
 use dioxus::prelude::*;
 
-use crate::views::View;
+use crate::{pages::LeftUsers, views::View};
 
 #[component]
 pub fn ViewUser(username: String) -> Element {
-    // verify_user!();
-
     rsx! {
         View {
             view_right: true,
-            left: rsx! { p { "users" } },
-            right: rsx! { p { "user: {username}" } },
-            // left: rsx! { LeftUsers {} },
+            left: rsx! { LeftUsers {} },
+            right: rsx! { p { "user: {username:?}" } },
             // right: rsx! {
             //     { if let Some(username) = username.clone() {
             //         RightUser { username }
@@ -22,5 +19,12 @@ pub fn ViewUser(username: String) -> Element {
             //     } }
             // },
         }
+    }
+}
+
+#[component]
+pub fn ViewUsers() -> Element {
+    rsx! {
+        ViewUser { username: "" }
     }
 }

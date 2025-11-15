@@ -1,3 +1,3 @@
 mod user;
 
-pub use user::ViewUser;
+pub use user::{ViewUser, ViewUsers};

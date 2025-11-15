@@ -80,5 +80,5 @@ async fn verify_kratos_cookie(cookie_value: &str) -> Result<Option<String>, Stri
         .await
         .map_err(|e| format!("Failed to parse Kratos response: {e}"));
 
-    Ok(user_data.map(|data| Some(data.identity.traits.email))?)
+    user_data.map(|data| Some(data.identity.traits.email))
 }

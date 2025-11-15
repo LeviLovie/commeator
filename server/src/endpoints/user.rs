@@ -5,7 +5,7 @@ use super::prelude::*;
 const ALLOWER_USERNAME_SPECIAL_CHARS: &str = "_-.";
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![get, my, setup, check]
+    routes![get, list, my, setup, check]
 }
 
 #[post("/get", data = "<req>")]
@@ -16,6 +16,7 @@ pub async fn get(
 ) -> ApiResult<ProtoResp<GetUserResp>> {
     let user_model = Users::find()
         .filter(users::Column::Username.eq(&req.0.username))
+        .filter(users::Column::SetupComplete.eq(true))
         .one(&db.0)
         .await
         .context("Database query failed")?
@@ -29,6 +30,27 @@ pub async fn get(
             avatar: user_model.avatar,
         }),
     }))
+}
+
+#[post("/list")]
+pub async fn list(_jwt: Jwt, db: &State<Db>) -> ApiResult<ProtoResp<ListUsersResp>> {
+    let user_models = Users::find()
+        .filter(users::Column::SetupComplete.eq(true))
+        .all(&db.0)
+        .await
+        .context("Database query failed")?;
+
+    let users = user_models
+        .into_iter()
+        .map(|user_model| User {
+            uuid: user_model.uuid.to_string(),
+            username: user_model.username,
+            nickname: user_model.nickname,
+            avatar: user_model.avatar,
+        })
+        .collect();
+
+    Ok(ProtoResp(ListUsersResp { users }))
 }
 
 #[post("/my")]
@@ -121,18 +143,28 @@ pub async fn setup(
         }));
     }
 
-    let mut user_model = Users::find()
+    let user_model = Users::find()
         .filter(users::Column::Uuid.eq(jwt.0.sub))
         .one(&db.0)
         .await
         .context("Database query failed")?
         .ok_or(anyhow!("User not found"))?;
-    user_model.username = req.0.username;
-    user_model.nickname = req.0.nickname;
-    user_model.avatar = req.0.avatar;
-    user_model.setup_complete = true;
-    let user_model = user_model
-        .into_active_model()
+
+    let mut avatar = req.0.avatar;
+    if avatar.is_empty() {
+        avatar = format!(
+            "https://gravatar.com/avatar/{:x}",
+            md5::compute(user_model.email.as_bytes())
+        );
+    }
+    println!("Avatar set to: {}", avatar);
+
+    let mut active_user_model = user_model.into_active_model();
+    active_user_model.username = Set(req.0.username);
+    active_user_model.nickname = Set(req.0.nickname);
+    active_user_model.avatar = Set(avatar);
+    active_user_model.setup_complete = Set(true);
+    let user_model = active_user_model
         .update(&db.0)
         .await
         .context("Database update failed")?;

@@ -2,32 +2,40 @@ use dioxus::prelude::*;
 
 use crate::{
     Route,
-    backend::{ApiData, list_users, use_api_data},
     components::{Avatar, Header, HeaderText, Item, Spinner},
+    request::backend,
+    state::AppState,
 };
-use utils::data::UserInfo;
+use proto::{ListUsersResp, User};
 
 #[derive(Clone)]
 pub struct UsersContext {
-    users: Signal<ApiData<Vec<UserInfo>>>,
+    users: Resource<Vec<User>>,
 }
 
 #[component]
 pub fn LeftUsers() -> Element {
-    {
-        let users = use_api_data(|| async { list_users(true).await });
-        let context = UsersContext { users };
-        use_context_provider(|| context.clone());
-    }
+    let app_state = use_context::<AppState>();
+    let jwt = app_state.auth.get_jwt();
+
+    let users = use_resource(move || {
+        let jwt_clone = jwt.clone();
+        async move {
+            let token = jwt_clone.clone();
+            let resp: ListUsersResp = backend("/u/list", token, ()).await;
+            resp.users
+        }
+    });
+    let context = UsersContext { users };
+    use_context_provider(|| context.clone());
 
     let navigator = navigator();
 
     let context = use_context::<UsersContext>();
-    let users = context.users.read();
-    if users.is_loading() || users.as_ref().is_none() {
+    if context.users.read().is_none() {
         return rsx! { Spinner {} };
     }
-    let users = users.as_ref().unwrap();
+    let users = context.users.read().as_ref().unwrap().clone();
 
     rsx! {
         Header {
@@ -52,7 +60,7 @@ pub fn LeftUsers() -> Element {
                         div {
                             class: "flex-shrink-0 w-10 h-10 mr-3",
 
-                            Avatar { email_hash: user.email_hash.clone() },
+                            Avatar { link: user.avatar.clone() },
                         }
 
                         div {

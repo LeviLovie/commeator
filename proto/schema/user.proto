@@ -15,6 +15,10 @@ message GetUserResp {
   User user = 1;
 }
 
+message ListUsersResp {
+  repeated User users = 1;
+}
+
 message MyUserResp {
   User user = 1;
 }
