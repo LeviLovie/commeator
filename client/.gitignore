@@ -1,1 +1,6 @@
 target/
+
+.env.web
+.env.web.local
+.env.native
+.env.native.local

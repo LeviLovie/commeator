@@ -22,28 +22,28 @@ pub fn LogOut() -> Element {
 
 #[cfg(target_arch = "wasm32")]
 pub async fn logout() {
-    use crate::backend::Request;
-    use utils::config::{endpoints::auth::URI_LOGOUT, on_auth_base_url};
+    // use crate::backend::Request;
+    // use utils::config::{endpoints::auth::URI_LOGOUT, on_auth_base_url};
 
-    match Request::get(&on_auth_base_url(URI_LOGOUT).await)
-        .build()
-        .send_decode::<LogOutResponse>()
-        .await
-    {
-        Ok(response) => {
-            navigator().replace(response.logout_url);
-        }
-        Err(e) => {
-            error!("Error during logout request: {}", e);
-        }
-    }
+    // match Request::get(&on_auth_base_url(URI_LOGOUT).await)
+    //     .build()
+    //     .send_decode::<LogOutResponse>()
+    //     .await
+    // {
+    //     Ok(response) => {
+    //         navigator().replace(response.logout_url);
+    //     }
+    //     Err(e) => {
+    //         error!("Error during logout request: {}", e);
+    //     }
+    // }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 pub async fn logout() {
-    use crate::{Route, backend::local_storage::delete_jwt};
+    use crate::Route;
 
-    delete_jwt();
-    use_context::<crate::JwtContext>().jwt.set(None);
+    // delete_jwt();
+    // use_context::<crate::JwtContext>().jwt.set(None);
     navigator().replace(Route::ViewHome);
 }

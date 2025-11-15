@@ -1,25 +1,22 @@
 use dioxus::prelude::*;
 
-use crate::{
-    components::{CenteredInvisible, CenteredText},
-    panels::LeftSettings,
-    verify_user,
-    views::View,
-};
+use crate::views::View;
 
 #[component]
 pub fn ViewSettings() -> Element {
-    verify_user!();
+    // verify_user!();
 
     rsx! {
         View {
             view_right: false,
-            left: rsx! { LeftSettings {} },
-            right: rsx! { CenteredInvisible {
-                CenteredText {
-                    text: "Select a settings category to edit"
-                }
-            } },
+            left: rsx! { p { "settings" } },
+            right: rsx! { p { "empty" } },
+            // left: rsx! { LeftSettings {} },
+            // right: rsx! { CenteredInvisible {
+            //     CenteredText {
+            //         text: "Select a settings category to edit"
+            //     }
+            // } },
         }
     }
 }

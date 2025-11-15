@@ -1,5 +1,9 @@
 mod components;
+mod config;
 mod pages;
+mod request;
+#[macro_use]
+mod macros;
 mod services;
 mod state;
 mod views;
@@ -7,16 +11,13 @@ mod views;
 use dioxus::{logger::tracing::Level, prelude::*};
 
 use pages::*;
+use state::AppStateLayout;
 use views::*;
 
 #[derive(Clone, Routable, PartialEq)]
 #[rustfmt::skip]
 enum Route {
-    #[end_nest]
     #[nest("/a")]
-        #[route("/callback")]
-        AuthCallback,
-
         #[route("/close")]
         AuthClose,
 
@@ -30,38 +31,42 @@ enum Route {
         AuthLogIn { flow: String },
 
         #[route("/error?:id")]
-        #[end_nest]
         AuthError { id: String },
+    #[end_nest]
 
     #[layout(AppStateLayout)]
         #[route("/")]
         ViewHome,
 
+        #[route("/callback")]
+        AuthCallback,
+
         #[nest("/u")]
-            #[route("/:username?")]
-            ViewUser { username: Option<String> },
-
+            #[route("/:username")]
+            ViewUser { username: String },
         #[end_nest]
+
         #[nest("/c")]
-            #[route("/:uuid?")]
-            ViewChat { uuid: Option<String> },
-
+            #[route("/:uuid")]
+            ViewChat { uuid: String },
         #[end_nest]
+
         #[nest("/g")]
             #[route("/new")]
             ViewNewGroup,
-
         #[end_nest]
+
         #[nest("/s")]
             #[route("/")]
             ViewSettings,
 
             #[route("/account")]
             ViewSettingsAccount,
+        // #[end_nest]
 }
 
 fn main() {
-    dioxus::logger::init(Level::INFO).expect("failed to initialize logger");
+    dioxus::logger::init(Level::DEBUG).expect("failed to initialize logger");
 
     #[cfg(feature = "desktop")]
     {

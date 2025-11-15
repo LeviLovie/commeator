@@ -1,24 +1,33 @@
 use dioxus::prelude::*;
+use std::rc::Rc;
 
-use crate::services::{AuthService, CentrifugoService, StorageService};
+use crate::{components::Spinner, services, Route};
 
 #[derive(Clone)]
 pub struct AppState {
-    pub auth: Signal<AuthService>,
-    pub storage: Signal<StorageService>,
-    pub centrifugo: Signal<CentrifugoService>,
+    pub auth: Rc<services::Auth>,
 }
 
 #[component]
 pub fn AppStateLayout() -> Element {
-    let default_app_state = AppState {
-        auth: use_signal(AuthService::default()),
-        storage: use_signal(StorageService::new()),
-        centrifugo: use_signal(CentrifugoService::new()),
-    };
-    use_default_context_provider(default_app_state);
+    let auth = use_resource(
+        async || {
+            info!("Initializing Auth Service");
+            Rc::new(services::Auth::new().run().await)
+        },
+    );
+
+    if let Some(_) = auth.read().as_ref() {
+        use_context_provider(|| AppState {
+            auth: auth.read().as_ref().unwrap().clone(),
+        });
+
+        return rsx! {
+            Outlet::<Route> {}
+        };
+    }
 
     rsx! {
-        Outlet::<Route> {}
+        Spinner {}
     }
 }

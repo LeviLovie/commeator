@@ -1,20 +1,18 @@
 use dioxus::prelude::*;
 
-use crate::{
-    panels::{LeftSettings, SettingsAccount},
-    verify_user,
-    views::View,
-};
+use crate::views::View;
 
 #[component]
 pub fn ViewSettingsAccount() -> Element {
-    verify_user!();
+    // verify_user!();
 
     rsx! {
         View {
             view_right: true,
-            left: rsx! { LeftSettings {} },
-            right: rsx! { SettingsAccount {} },
+            left: rsx! { p { "settings" } },
+            right: rsx! { p { "account" } },
+            // left: rsx! { LeftSettings {} },
+            // right: rsx! { SettingsAccount {} },
         }
     }
 }

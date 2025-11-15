@@ -1,3 +1,3 @@
 mod chat;
 
-pub use chat::ViewUser;
+pub use chat::ViewChat;

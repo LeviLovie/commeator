@@ -7,8 +7,20 @@ pub fn NavBar() -> Element {
     let navigator = navigator();
 
     let links = [
-        ("chats", Route::ViewChats, asset!("assets/icons/chats.svg")),
-        ("users", Route::ViewUsers, asset!("assets/icons/users.svg")),
+        (
+            "chats",
+            Route::ViewChat {
+                uuid: "".to_string(),
+            },
+            asset!("assets/icons/chats.svg"),
+        ),
+        (
+            "users",
+            Route::ViewUser {
+                username: "".to_string(),
+            },
+            asset!("assets/icons/users.svg"),
+        ),
         (
             "settings",
             Route::ViewSettings,
