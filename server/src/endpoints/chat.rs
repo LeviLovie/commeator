@@ -1,7 +1,9 @@
 use super::prelude::*;
 
+const MAX_CHAT_NAME_LENGTH: usize = 100;
+
 pub fn routes() -> Vec<rocket::Route> {
-    routes![list, get, verify]
+    routes![list, get, verify, g_create]
 }
 
 #[post("/list")]
@@ -253,5 +255,69 @@ pub async fn verify(
 
     Ok(ProtoResp(VerifyPrivateChatResp {
         chat_uuid: chat.uuid.to_string(),
+    }))
+}
+
+#[post("/g/create", data = "<req>")]
+pub async fn g_create(
+    jwt: Jwt,
+    req: Proto<CreateGroup>,
+    db: &State<Db>,
+) -> ApiResult<ProtoResp<CreateGroupResp>> {
+    let my_uuid = jwt.0.sub;
+
+    let chat_name = req.0.name.trim();
+
+    if chat_name.is_empty() {
+        return Err(anyhow!("Group name cannot be empty").into());
+    }
+
+    if chat_name.len() > MAX_CHAT_NAME_LENGTH {
+        return Err(anyhow!("Group name cannot exceed {} characters", MAX_CHAT_NAME_LENGTH).into());
+    }
+
+    let txn = db.0.begin().await.context("Failed to begin transaction")?;
+
+    let chat = chats::ActiveModel {
+        is_group: Set(true),
+        ..Default::default()
+    }
+        .insert(&txn)
+        .await
+        .context("Failed to create group chat")?;
+
+    let mut members = vec![];
+
+    let mut names = vec![];
+
+    for member_uuid_str in &req.0.member_uuids {
+        let member_uuid = Uuid::parse_str(member_uuid_str)
+            .context("Invalid UUID format in member_uuids")?;
+        members.push(chat_members::ActiveModel {
+            chat_uuid: Set(chat.uuid),
+            user_uuid: Set(member_uuid),
+            ..Default::default()
+        });
+        names.push(chat_names::ActiveModel {
+            chat_uuid: Set(chat.uuid),
+            user_uuid: Set(member_uuid),
+            name: Set(chat_name.to_string()),
+        });
+    }
+
+    chat_members::Entity::insert_many(members)
+        .exec(&txn)
+        .await
+        .context("Failed to insert group chat members")?;
+
+    chat_names::Entity::insert_many(names)
+        .exec(&txn)
+        .await
+        .context("Failed to insert group chat members")?;
+
+    txn.commit().await.context("Failed to commit transaction")?;
+
+    Ok(ProtoResp(CreateGroupResp {
+        uuid: chat.uuid.to_string(),
     }))
 }

@@ -27,3 +27,11 @@ message VerifyPrivateChat {
 message VerifyPrivateChatResp {
   string chat_uuid = 1;
 }
+
+message CreateGroup {
+  string name = 1;
+  repeated string member_uuids = 2;
+}
+message CreateGroupResp {
+  string uuid = 1;
+}

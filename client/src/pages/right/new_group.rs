@@ -1,14 +1,11 @@
 use dioxus::prelude::*;
-use utils::data::UserInfo;
-use uuid::Uuid;
 
+use proto::{User, GetUserResp, CreateGroup, CreateGroupResp, ListUsers, ListUsersResp};
 use crate::{
-    Route,
-    backend::{list_users, my_user, new_group, use_api_data},
     components::{
         Avatar, CenteredForm, Header, HeaderButtonBack, HeaderText, IconButton,
         NotFullHeightSpinner,
-    },
+    }, request::{backend, backend_get}, state::AppState, Route
 };
 
 #[derive(Clone, PartialEq, Debug)]
@@ -22,10 +19,12 @@ pub enum Stage {
 #[component]
 pub fn RightNewGroup() -> Element {
     let navigator = navigator();
+    let app_state = use_context::<AppState>();
+    let jwt = app_state.auth.get_jwt();
 
     let mut state = use_signal(|| Stage::Title);
     let title: Signal<(bool, Option<String>)> = use_signal(|| (false, None));
-    let users: Signal<(bool, Vec<UserInfo>)> = use_signal(|| (false, Vec::new()));
+    let users: Signal<(bool, Vec<User>)> = use_signal(|| (false, Vec::new()));
     let finalized = use_signal(|| false);
 
     use_effect({
@@ -36,26 +35,31 @@ pub fn RightNewGroup() -> Element {
                 state.set(Stage::Finalize);
 
                 if *finalized.read() {
+                    let jwt = jwt.clone();
                     spawn(async move {
                         let title_guard = title.read();
                         let title: String = title_guard.1.as_ref().unwrap().clone();
 
                         let users_guard = users.read();
-                        let users = users_guard.1.clone();
-                        let mut user_uuids: Vec<Uuid> = users.iter().map(|u| u.uuid).collect();
-                        let my_uuid = match my_user().await {
-                            Ok(user) => user.uuid,
-                            Err(e) => {
-                                error!("Failed to get my user: {}", e);
-                                return;
-                            }
-                        };
-                        user_uuids.push(my_uuid);
+                        let mut users = users_guard.1.clone().iter().map(|u| u.uuid.clone()).collect::<Vec<String>>();
 
-                        match new_group(title, user_uuids).await {
-                            Ok(uuid) => {
+                        let my_user = backend_get::<GetUserResp>("/u/my", jwt.clone())
+                            .await
+                            .expect("Failed to get self")
+                            .user;
+                        if my_user.is_none() {
+                            error!("Failed to get self user info");
+                            return;
+                        }
+                        users.push(my_user.unwrap().uuid);
+
+                        match backend::<CreateGroup, CreateGroupResp>("/c/g/create", jwt.clone(), CreateGroup {
+                            name: title.clone(),
+                            member_uuids: users.clone(),
+                        }).await {
+                            Ok(resp) => {
                                 navigator.replace(Route::ViewChat {
-                                    uuid: uuid.to_string(),
+                                    uuid: resp.uuid,
                                 });
                             }
                             Err(e) => {
@@ -68,8 +72,7 @@ pub fn RightNewGroup() -> Element {
             } else {
                 state.set(Stage::Users);
             }
-        } else {
-            state.set(Stage::Title);
+        } else { state.set(Stage::Title);
         }
 
         || {}
@@ -78,7 +81,7 @@ pub fn RightNewGroup() -> Element {
     rsx! {
         Header {
             left: rsx! { HeaderButtonBack {
-                route: Route::ViewChats,
+                route: Route::ViewChats {},
             } },
             center: rsx! { HeaderText {
                 text: "New Group"
@@ -89,7 +92,7 @@ pub fn RightNewGroup() -> Element {
         CenteredForm {
             { match *state.read() {
                 Stage::Title => rsx! { EnterTitle { title } },
-                Stage::Users => rsx! { AddUsers { users } },
+                Stage::Users => rsx! { AddUsers { users, jwt: jwt.clone() } },
                 Stage::Finalize => rsx! { Finalize { finalized, title, users } },
                 Stage::End => rsx! {
                     div {
@@ -106,7 +109,7 @@ pub fn RightNewGroup() -> Element {
 pub fn Finalize(
     finalized: Signal<bool>,
     title: Signal<(bool, Option<String>)>,
-    users: Signal<(bool, Vec<UserInfo>)>,
+    users: Signal<(bool, Vec<User>)>,
 ) -> Element {
     let users_guard = users.read();
     let users_clone = users_guard.1.clone();
@@ -213,20 +216,24 @@ pub fn EnterTitle(title: Signal<(bool, Option<String>)>) -> Element {
 }
 
 #[component]
-pub fn AddUsers(users: Signal<(bool, Vec<UserInfo>)>) -> Element {
-    let mut users = users;
-
-    let all_users = use_api_data(|| async { list_users(true).await });
-
-    {
-        let all_users = all_users.read();
-        if all_users.is_loading() {
-            return rsx! { NotFullHeightSpinner {} };
+pub fn AddUsers(mut users: Signal<(bool, Vec<User>)>, jwt: String) -> Element {
+    let all_users = use_resource(move || {
+        let jwt_clone = jwt.clone();
+        async move {
+            backend::<ListUsers, ListUsersResp>(
+                "/u/list",
+                jwt_clone,
+                ListUsers { exclude_me: true },
+            )
+            .await
+            .expect("Failed to list users")
+            .users
         }
-    };
-
-    let all_users_guard = all_users.read();
-    let all_users = all_users_guard.as_ref().unwrap();
+    });
+    if all_users.read().is_none() {
+        return rsx! { NotFullHeightSpinner {} };
+    }
+    let all_users = all_users.read().as_ref().unwrap().clone();
 
     let selected_users = users.read().1.clone();
 
@@ -305,14 +312,15 @@ pub fn AddUsers(users: Signal<(bool, Vec<UserInfo>)>) -> Element {
 }
 
 #[component]
-pub fn UserItem(user: UserInfo) -> Element {
+pub fn UserItem(user: User) -> Element {
     rsx! {
         div {
             class: "flex flex-row text-left p-2 w-full h-full cursor-pointer",
+
             div {
                 class: "flex-shrink-0 w-8 h-8 mr-3",
 
-                Avatar { email_hash: user.email_hash.clone() },
+                Avatar { link: user.avatar.clone() },
             }
 
             div {

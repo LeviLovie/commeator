@@ -1,8 +1,8 @@
 use dioxus::prelude::*;
 
 use crate::{
-    Route,
     components::{Header, HeaderText, Item},
+    Route,
 };
 
 #[component]

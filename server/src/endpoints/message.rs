@@ -260,11 +260,6 @@ pub async fn sync(
     let since =
         DateTime::from_timestamp_millis(req.0.last_update).ok_or(anyhow!("Invalid timestamp"))?;
 
-    println!(
-        "Syncing messages for chat {} since {}",
-        chat_uuid, since
-    );
-
     let rows = messages::Entity::find()
         .filter(messages::Column::ChatUuid.eq(chat_uuid))
         .filter(messages::Column::UpdatedAt.gt(since))
@@ -273,8 +268,6 @@ pub async fn sync(
         .all(&db.0)
         .await
         .context("Database query failed")?;
-
-    println!("Syncing {} messages for chat {}", rows.len(), chat_uuid);
 
     let mut res_updates = vec![];
 
@@ -316,12 +309,6 @@ pub async fn sync(
             None
         };
 
-        println!(
-            "Message {} update type: {:?}",
-            row.uuid,
-            update_type
-        );
-
         res_updates.push(MessageUpdate {
             uuid: row.uuid.to_string(),
             updated_at: row.updated_at.and_utc().timestamp_millis(),
@@ -342,12 +329,6 @@ pub async fn sync(
             },
         });
     }
-
-    println!(
-        "Returning {} updates for chat {}",
-        res_updates.len(),
-        chat_uuid
-    );
 
     Ok(ProtoResp(SyncMessagesResp {
         newest_update: rows

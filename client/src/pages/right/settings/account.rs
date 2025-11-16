@@ -1,28 +1,31 @@
 use dioxus::prelude::*;
 
-use crate::{
-    Route,
-    backend::{my_user, use_api_data},
-    components::{Header, HeaderButtonBack, HeaderText, LogOut, Spinner},
-    verify_user,
-};
+use crate::{components::{Header, HeaderButtonBack, HeaderText, LogOut, Spinner}, request::backend_get, state::AppState, Route};
+use proto::GetUserResp;
 
 #[component]
 pub fn SettingsAccount() -> Element {
-    verify_user!();
+    let app_state = use_context::<AppState>();
+    let jwt = app_state.auth.get_jwt();
 
-    let user = use_api_data(|| async { my_user().await });
-    if user.read().is_loading() || user.read().as_ref().is_none() {
+    let user = use_resource(move || {
+        let jwt = jwt.clone();
+        async move {
+            backend_get::<GetUserResp>("/u/my", jwt.clone())
+                .await
+                .expect("Failed to get self")
+                .user
+        }
+    });
+    if user.read().is_none() {
         return rsx! { Spinner {} };
     }
-
-    let user_guard = user.read();
-    let user = user_guard.as_ref().unwrap().clone();
+    let user = user.read().as_ref().unwrap().clone().unwrap();
 
     rsx! {
         Header {
             left: rsx! { HeaderButtonBack {
-                route: Route::ViewSettings,
+                route: Route::ViewSettings {},
             } },
             center: rsx! { HeaderText {
                 text: "Account"
