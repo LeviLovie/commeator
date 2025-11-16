@@ -1,6 +1,8 @@
 syntax = "proto3";
 package commeator;
 
+import "user.proto";
+
 message Chat {
   string uuid = 1;
   string name = 2;
@@ -16,6 +18,7 @@ message GetChat {
 }
 message GetChatResp {
   Chat chat = 1;
+  repeated User members = 2;
 }
 
 message VerifyPrivateChat {

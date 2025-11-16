@@ -13,6 +13,7 @@ pub enum Messages {
     Reply,
     CreatedAt,
     EditedAt,
+    UpdatedAt,
     Deleted,
 }
 
@@ -37,12 +38,27 @@ impl MigrationTrait for Migration {
                     .col(uuid(Messages::SenderUuid).not_null())
                     .col(text(Messages::Content).not_null())
                     .col(
+                        ColumnDef::new(Messages::Reply)
+                            .uuid()
+                            .null()
+                    )
+                    .col(
                         timestamp(Messages::CreatedAt)
                             .not_null()
                             .default(Expr::current_timestamp()),
                     )
                     .col(timestamp_null(Messages::EditedAt))
-                    .col(boolean(Messages::Deleted).not_null().default(false))
+                    .col(
+                        timestamp(Messages::UpdatedAt)
+                            .not_null()
+                            .default(Expr::current_timestamp())
+                    )
+                    .col(
+                        ColumnDef::new(Messages::Deleted)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-messages-chat")

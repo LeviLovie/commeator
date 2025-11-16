@@ -1,11 +1,4 @@
-use sea_orm::{
-    JoinType, QuerySelect, RelationDef, RelationTrait, TransactionTrait, prelude::Expr,
-    sea_query::Alias,
-};
-
 use super::prelude::*;
-
-const ALLOWER_USERNAME_SPECIAL_CHARS: &str = "_-.";
 
 pub fn routes() -> Vec<rocket::Route> {
     routes![list, get, verify]
@@ -13,20 +6,39 @@ pub fn routes() -> Vec<rocket::Route> {
 
 #[post("/list")]
 pub async fn list(jwt: Jwt, db: &State<Db>) -> ApiResult<ProtoResp<ListChatsResp>> {
+    let cm = Alias::new("cm");
+    let cn = Alias::new("cn");
+
     let chat_rows = chats::Entity::find()
-        .join(
+        .join_as(
             JoinType::InnerJoin,
-            chat_members::Entity::belongs_to(chats::Entity)
-                .from(chat_members::Column::ChatUuid)
-                .to(chats::Column::Uuid)
-                .into(),
+            RelationDef::from(
+                chat_members::Entity::belongs_to(chats::Entity)
+                    .from(chat_members::Column::ChatUuid)
+                    .to(chats::Column::Uuid),
+            )
+            .rev(),
+            cm.clone(),
         )
-        .join(JoinType::LeftJoin, chat_names::Relation::Chats.def())
-        .filter(chat_members::Column::UserUuid.eq(jwt.0.sub))
+        .join_as(
+            JoinType::LeftJoin,
+            RelationDef::from(
+                chat_names::Entity::belongs_to(chats::Entity)
+                    .from(chat_names::Column::ChatUuid)
+                    .to(chats::Column::Uuid),
+            )
+            .rev(),
+            cn.clone(),
+        )
+        .filter(Expr::col((cm.clone(), chat_members::Column::UserUuid)).eq(jwt.0.sub))
+        .filter(Expr::col((cn.clone(), chat_names::Column::UserUuid)).eq(jwt.0.sub))
         .select_only()
         .column(chats::Column::Uuid)
         .column(chats::Column::IsGroup)
-        .column(chat_names::Column::Name)
+        .expr_as(
+            Expr::col((cn.clone(), chat_names::Column::Name)),
+            "chat_name",
+        )
         .into_tuple::<(Uuid, bool, Option<String>)>()
         .all(&db.0)
         .await
@@ -50,15 +62,43 @@ pub async fn get(
     req: Proto<GetChat>,
     db: &State<Db>,
 ) -> ApiResult<ProtoResp<GetChatResp>> {
+    let chat_uuid = Uuid::parse_str(&req.0.uuid)
+        .context("Invalid chat UUID format")?;
+    
+    let cm = Alias::new("cm");
+    let cn = Alias::new("cn");
+
     let row = chats::Entity::find()
-        .join(JoinType::InnerJoin, chat_members::Relation::Chats.def())
-        .join(JoinType::LeftJoin, chat_names::Relation::Chats.def())
-        .filter(chats::Column::Uuid.eq(req.0.uuid))
-        .filter(chat_members::Column::UserUuid.eq(jwt.0.sub))
+        .join_as(
+            JoinType::InnerJoin,
+            RelationDef::from(
+                chat_members::Entity::belongs_to(chats::Entity)
+                    .from(chat_members::Column::ChatUuid)
+                    .to(chats::Column::Uuid),
+            )
+            .rev(),
+            cm.clone(),
+        )
+        .join_as(
+            JoinType::LeftJoin,
+            RelationDef::from(
+                chat_names::Entity::belongs_to(chats::Entity)
+                    .from(chat_names::Column::ChatUuid)
+                    .to(chats::Column::Uuid),
+            )
+            .rev(),
+            cn.clone(),
+        )
+        .filter(Expr::col((cm.clone(), chat_members::Column::UserUuid)).eq(jwt.0.sub))
+        .filter(Expr::col((cn.clone(), chat_names::Column::UserUuid)).eq(jwt.0.sub))
+        .filter(chats::Column::Uuid.eq(chat_uuid))
         .select_only()
         .column(chats::Column::Uuid)
         .column(chats::Column::IsGroup)
-        .column(chat_names::Column::Name)
+        .expr_as(
+            Expr::col((cn.clone(), chat_names::Column::Name)),
+            "chat_name",
+        )
         .into_tuple::<(Uuid, bool, Option<String>)>()
         .one(&db.0)
         .await
@@ -68,12 +108,29 @@ pub async fn get(
         return Err(anyhow!("Chat not found").into());
     };
 
+    let members = chat_members::Entity::find()
+        .filter(chat_members::Column::ChatUuid.eq(uuid))
+        .find_with_related(users::Entity)
+        .all(&db.0)
+        .await
+        .context("Failed to fetch chat members")?
+        .into_iter()
+        .filter_map(|(_, users)| users.into_iter().next())
+        .map(|u| User {
+            uuid: u.uuid.to_string(),
+            username: u.username,
+            nickname: u.nickname,
+            avatar: u.avatar,
+        })
+        .collect::<Vec<_>>();
+
     Ok(ProtoResp(GetChatResp {
         chat: Some(Chat {
             uuid: uuid.to_string(),
             is_group,
             name: maybe_name.unwrap_or_else(|| "Unnamed".into()),
         }),
+        members,
     }))
 }
 

@@ -7,7 +7,9 @@ use proto::CheckUserResp;
 pub fn AuthCallback() -> Element {
     use_effect(move || {
         spawn(async move {
-            let resp: CheckUserResp = backend_get("/u/check", "").await.expect("Failed to check user");
+            let resp: CheckUserResp = backend_get("/u/check", "")
+                .await
+                .expect("Failed to check user");
             if resp.exists {
                 navigator().replace(Route::ViewHome);
             } else {

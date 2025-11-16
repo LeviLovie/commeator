@@ -1,9 +1,12 @@
 use dioxus::prelude::*;
 
-use proto::{GetUser, GetUserResp, VerifyPrivateChat, VerifyPrivateChatResp};
 use crate::{
-    components::{Avatar, Error, Header, HeaderButtonBack, HeaderText, Spinner}, request::backend, state::AppState, Route
+    Route,
+    components::{Avatar, Error, Header, HeaderButtonBack, HeaderText, Spinner},
+    request::backend,
+    state::AppState,
 };
+use proto::{GetUser, GetUserResp, VerifyPrivateChat, VerifyPrivateChatResp};
 
 #[component]
 pub fn RightUser(username: String) -> Element {
@@ -16,9 +19,16 @@ pub fn RightUser(username: String) -> Element {
         let jwt = jwt_clone.clone();
         let username = username.clone();
         async move {
-            let req = GetUser { username: username.clone() };
-            let resp: GetUserResp = backend("/u/get", jwt.clone(), req).await.expect("Failed to get user");
-            resp.user
+            backend::<GetUser, GetUserResp>(
+                "/u/get",
+                jwt.clone(),
+                GetUser {
+                    username: username.clone(),
+                },
+            )
+            .await
+            .expect("Failed to get user")
+            .user
         }
     });
     if user.read().is_none() {

@@ -11,10 +11,11 @@ pub struct Model {
     pub sender_uuid: Uuid,
     #[sea_orm(column_type = "Text")]
     pub content: String,
+    pub reply: Option<Uuid>,
     pub created_at: DateTime,
     pub edited_at: Option<DateTime>,
+    pub updated_at: DateTime,
     pub deleted: bool,
-    pub reply: Option<Uuid>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

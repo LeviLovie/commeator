@@ -32,28 +32,41 @@ impl Storage {
     pub async fn load_string(&self, filename: String) -> Result<String> {
         #[cfg(target_arch = "wasm32")]
         {
-            gloo_storage::LocalStorage::get(filename).context("Failed to read file")
+            use gloo_storage::{LocalStorage, Storage};
+
+            Ok(LocalStorage::get(&filename).unwrap_or_else(|_| {
+                let default = String::new();
+                LocalStorage::set(&filename, &default).ok();
+                default
+            }))
         }
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            std::fs::read_to_string(
-                data_dir()
-                    .context("Failed to get the data dir")?
-                    .push(filename),
-            )
-            .context("Failed to read file")
+            let mut path: std::path::PathBuf = data_dir().context("Failed to get the data dir")?;
+            std::fs::create_dir_all(&path).context("Failed to create data directory")?;
+
+            path.push(filename);
+
+            if path.exists() {
+                return std::fs::read_to_string(&path).context("Failed to read existing file");
+            }
+
+            let default_content = String::new();
+            std::fs::write(&path, &default_content).context("Failed to create new file")?;
+
+            Ok(default_content)
         }
     }
 
     pub async fn save<T: serde::Serialize>(&self, filename: String, data: T) -> Result<()> {
-        let serialized = serde_json::to_string(&data).context("Failed to serialize data")?;
+        let serialized = ron::to_string(&data).context("Failed to serialize data")?;
         self.save_string(filename, serialized).await
     }
 
     pub async fn load<T: serde::de::DeserializeOwned>(&self, filename: String) -> Result<T> {
         let data = self.load_string(filename).await?;
-        let deserialized = serde_json::from_str(&data).context("Failed to deserialize data")?;
+        let deserialized = ron::from_str(&data).context("Failed to deserialize data")?;
         Ok(deserialized)
     }
 

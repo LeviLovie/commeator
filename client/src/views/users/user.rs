@@ -13,19 +13,7 @@ pub fn ViewUser(username: String) -> Element {
             view_right: true,
             left: rsx! { LeftUsers {} },
             right: rsx! {
-                { if username.is_empty() {
-                    rsx! {
-                        CenteredInvisible {
-                            CenteredText {
-                                text: "Select a user to view their profile"
-                            }
-                        }
-                    }
-                } else {
-                    rsx! {
-                        RightUser { username: username.clone() }
-                    }
-                } }
+                RightUser { username: username.clone() }
             },
         }
     }
@@ -34,6 +22,16 @@ pub fn ViewUser(username: String) -> Element {
 #[component]
 pub fn ViewUsers() -> Element {
     rsx! {
-        ViewUser { username: "" }
+        View {
+            view_right: false,
+            left: rsx! { LeftUsers {} },
+            right: rsx! {
+                CenteredInvisible {
+                    CenteredText {
+                        text: "Select a user to view their profile"
+                    }
+                }
+            },
+        }
     }
 }

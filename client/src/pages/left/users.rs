@@ -17,11 +17,14 @@ pub fn LeftUsers() -> Element {
     let users = use_resource(move || {
         let jwt_clone = jwt.clone();
         async move {
-            let req = ListUsers {
-                exclude_me: true,
-            };
-            let resp: ListUsersResp = backend("/u/list", jwt_clone, req).await.expect("Failed to list users");
-            resp.users
+            backend::<ListUsers, ListUsersResp>(
+                "/u/list",
+                jwt_clone,
+                ListUsers { exclude_me: true },
+            )
+            .await
+            .expect("Failed to list users")
+            .users
         }
     });
     if users.read().is_none() {

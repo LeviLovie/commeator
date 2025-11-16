@@ -50,6 +50,9 @@ enum Route {
         #[end_nest]
 
         #[nest("/c")]
+            #[route("/")]
+            ViewChats {},
+
             #[route("/:uuid")]
             ViewChat { uuid: String },
         #[end_nest]

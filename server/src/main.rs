@@ -47,4 +47,5 @@ async fn rocket() -> _ {
         .mount("/j", endpoints::jwt::routes())
         .mount("/u", endpoints::user::routes())
         .mount("/c", endpoints::chat::routes())
+        .mount("/m", endpoints::message::routes())
 }

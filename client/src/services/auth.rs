@@ -1,6 +1,6 @@
 use chrono::{DateTime, NaiveDateTime};
 use dioxus::{
-    prelude::{debug, error, trace, warn},
+    prelude::{debug, error, warn},
     router::navigator,
 };
 use serde::{Deserialize, Serialize};
@@ -45,7 +45,6 @@ impl Auth {
     }
 
     pub async fn run(mut self) -> Self {
-        debug!("Starting auth state machine");
         loop {
             if let State::Failed(msg) = self.state {
                 error!("Auth state machine failed: {}", msg);
@@ -56,11 +55,9 @@ impl Auth {
                 break;
             }
 
-            debug!("Auth State: {}", self.state);
             self.step().await;
         }
 
-        debug!("Final Auth State: {}", self.state);
         self
     }
 
@@ -110,32 +107,43 @@ impl Auth {
                 let req = VerifyJwt {
                     token: file.jwt.clone().unwrap_or_default(),
                 };
-                let verify_resp: VerifyJwtResp = backend("/j/verify", "", req).await.expect("Failed to verify JWT");
-                if verify_resp.valid {
-                    dioxus::prelude::info!("Loaded valid JWT from storage");
-                    self.state = State::Authenticated(file.clone());
-                } else {
-                    dioxus::prelude::info!("Stored JWT is invalid or expired, generating new one");
-                    self.state = State::FetchKratos;
+                match backend::<VerifyJwt, VerifyJwtResp>("/j/verify", "", req).await {
+                    Ok(resp) if resp.valid => {
+                        self.state = State::Authenticated(file.clone());
+                    }
+                    Ok(_) => {
+                        self.state = State::GenJWT;
+                    }
+                    Err(e) => {
+                        warn!("Failed to verify stored JWT: {}", e);
+                        self.state = State::FetchKratos;
+                    }
                 }
             }
             State::GenJWT => {
-                let jwt_resp: GenJwtResp = backend_get("/j/gen", "").await.expect("Failed to generate JWT");
-                self.state = State::Save(File {
-                    jwt: Some(jwt_resp.token),
-                    expires: Some(
-                        DateTime::from_timestamp(
-                            jwt_resp
-                                .expires_at
-                                .parse()
-                                .expect("Invalid expiration timestamp"),
-                            0,
-                        )
-                        .unwrap()
-                        .naive_utc(),
-                    ),
-                    regen: Some(chrono::Utc::now().naive_utc()),
-                });
+                match backend_get::<GenJwtResp>("/j/gen", "").await {
+                    Ok(resp) => {
+                        self.state = State::Save(File {
+                            jwt: Some(resp.token),
+                            expires: Some(
+                                DateTime::from_timestamp(
+                                    resp.expires_at
+                                        .parse()
+                                        .expect("Invalid expiration timestamp"),
+                                    0,
+                                )
+                                .unwrap()
+                                .naive_utc(),
+                            ),
+                            regen: Some(chrono::Utc::now().naive_utc()),
+                        });
+                    }
+                    Err(e) => {
+                        warn!("Failed to generate JWT: {}", e);
+                        self.state = State::Logout;
+                        return;
+                    }
+                };
             }
             State::Logout => {
                 self.state = State::AwaitCallback;
@@ -146,8 +154,8 @@ impl Auth {
                 navigator().replace(format!("{}{}", CONFIG.url_auth, AUTH_LOGIN));
             }
             State::AwaitCallback => {}
-            State::Authenticated(file) => {
-                debug!("Authenticated with JWT: {:?}", file.jwt);
+            State::Authenticated(_) => {
+                debug!("Authenticated!");
             }
             State::Failed(msg) => {
                 error!("Auth state machine failed: {}", msg);

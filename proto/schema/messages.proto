@@ -1,0 +1,69 @@
+syntax = "proto3";
+package commeator;
+
+message Message {
+  string uuid = 1;
+  string sender_uuid = 2;
+  string content = 3;
+  optional MessageNoReply reply_to = 4;
+  int64 created_at = 5;
+  optional int64 edited_at = 6;
+}
+
+message MessageNoReply {
+  string uuid = 1;
+  string sender_uuid = 2;
+  string content = 3;
+  int64 created_at = 4;
+  optional int64 edited_at = 5;
+}
+
+enum MessageUpdateType {
+  NEW = 0;
+  DELETED = 1;
+  EDITED = 2;
+}
+message MessageUpdate {
+  string uuid = 1;
+  int64 updated_at = 2;
+  MessageUpdateType type = 3;
+  optional Message message = 4;
+}
+
+message SyncMessages {
+  string chat_uuid = 1;
+  int64 last_update = 2;
+}
+message SyncMessagesResp {
+  repeated MessageUpdate updates = 1;
+  int64 newest_update = 2;
+  bool has_more = 3;
+}
+
+message ListMessages {
+  string chat_uuid = 1;
+  int64 timestamp = 2;
+  bool reversed = 3;
+}
+message ListMessagesResp {
+  repeated Message messages = 1;
+  int64 newest_update = 2;
+}
+
+message SendMessage {
+  string chat_uuid = 1;
+  string content = 2;
+  optional string reply_to = 3;
+}
+message SendMessageResp {}
+
+message EditMessage {
+  string uuid = 1;
+  string new_content = 2;
+}
+message EditMessageResp {}
+
+message DeleteMessage {
+  string uuid = 1;
+}
+message DeleteMessageResp {}

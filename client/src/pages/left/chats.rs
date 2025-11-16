@@ -1,33 +1,32 @@
 use dioxus::prelude::*;
+use proto::ListChatsResp;
 
 use crate::{
     Route,
-    backend::{ApiData, list_chats, use_api_data},
     components::{Header, HeaderButton, HeaderText, Item, SmallIconButton, Spinner},
+    request::backend_get,
+    state::AppState,
 };
-use utils::data::ChatInfo;
-
-#[derive(Clone)]
-pub struct ChatsContext {
-    chats: Signal<ApiData<Vec<ChatInfo>>>,
-}
 
 #[component]
 pub fn LeftChats() -> Element {
-    {
-        let chats = use_api_data(|| async { list_chats().await });
-        let context = ChatsContext { chats };
-        use_context_provider(|| context.clone());
-    }
-
     let navigator = navigator();
+    let app_state = use_context::<AppState>();
+    let jwt = app_state.auth.get_jwt();
 
-    let context = use_context::<ChatsContext>();
-    let chats = context.chats.read();
-    if chats.is_loading() || chats.as_ref().is_none() {
+    let chats = use_resource(move || {
+        let jwt_clone = jwt.clone();
+        async move {
+            backend_get::<ListChatsResp>("/c/list", jwt_clone)
+                .await
+                .expect("Failed to list chats")
+                .chats
+        }
+    });
+    if chats.read().is_none() {
         return rsx! { Spinner {} };
     }
-    let chats = chats.as_ref().unwrap();
+    let chats = chats.read().as_ref().unwrap().clone();
 
     rsx! {
         Header {
@@ -50,7 +49,7 @@ pub fn LeftChats() -> Element {
         }
 
         { chats.iter().map(|chat| {
-            let uuid = chat.uuid;
+            let uuid = chat.uuid.clone();
             rsx! {
                 Item {
                     button {
