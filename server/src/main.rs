@@ -44,6 +44,7 @@ async fn rocket() -> _ {
         .manage(db)
         .attach(cors)
         .mount("/g", endpoints::general::routes())
-        .mount("/u", endpoints::user::routes())
         .mount("/j", endpoints::jwt::routes())
+        .mount("/u", endpoints::user::routes())
+        .mount("/c", endpoints::chat::routes())
 }

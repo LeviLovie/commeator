@@ -15,6 +15,9 @@ message GetUserResp {
   User user = 1;
 }
 
+message ListUsers {
+  bool exclude_me = 1;
+}
 message ListUsersResp {
   repeated User users = 1;
 }

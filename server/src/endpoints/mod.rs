@@ -1,3 +1,4 @@
+pub mod chat;
 pub mod general;
 pub mod jwt;
 pub mod user;
@@ -7,7 +8,7 @@ mod prelude {
     pub use rocket::{State, post, routes};
     pub use sea_orm::{
         ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set,
-        sqlx::types::chrono::Utc,
+        prelude::Uuid, sqlx::types::chrono::Utc,
     };
 
     pub use crate::{

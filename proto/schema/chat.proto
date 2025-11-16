@@ -1,0 +1,26 @@
+syntax = "proto3";
+package commeator;
+
+message Chat {
+  string uuid = 1;
+  string name = 2;
+  bool is_group = 3;
+}
+
+message ListChatsResp {
+  repeated Chat chats = 1;
+}
+
+message GetChat {
+  string uuid = 1;
+}
+message GetChatResp {
+  Chat chat = 1;
+}
+
+message VerifyPrivateChat {
+  string with_uuid = 1;
+}
+message VerifyPrivateChatResp {
+  string chat_uuid = 1;
+}

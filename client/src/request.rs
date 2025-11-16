@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, bail, Result};
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 
@@ -181,7 +181,7 @@ pub async fn backend<D: prost::Message, R: Default + prost::Message>(
     url: impl Into<String>,
     jwt: impl Into<String>,
     data: D,
-) -> R {
+) -> Result<R> {
     let response = Request::post(format!("{}{}", CONFIG.url_api, url.into()))
         .add_header("Content-Type", "application/x-protobuf")
         .add_body(data.encode_to_vec())
@@ -192,15 +192,15 @@ pub async fn backend<D: prost::Message, R: Default + prost::Message>(
         .await
         .unwrap();
     if response.status() != 200 {
-        panic!("Backend request failed with status: {}", response.status());
+        bail!("Backend request failed with status: {}", response.status());
     }
-    R::decode(&*response.raw()).unwrap()
+    R::decode(&*response.raw()).map_err(|e| anyhow!(e.to_string()))
 }
 
 pub async fn backend_get<R: Default + prost::Message>(
     url: impl Into<String>,
     jwt: impl Into<String>,
-) -> R {
+) -> Result<R> {
     let response = Request::post(format!("{}{}", CONFIG.url_api, url.into()))
         .add_header("Content-Type", "application/x-protobuf")
         .add_jwt(jwt.into())
@@ -210,9 +210,9 @@ pub async fn backend_get<R: Default + prost::Message>(
         .await
         .unwrap();
     if response.status() != 200 {
-        panic!("Backend request failed with status: {}", response.status());
+        bail!("Backend request failed with status: {}", response.status());
     }
-    R::decode(&*response.raw()).unwrap()
+    R::decode(&*response.raw()).map_err(|e| anyhow!(e.to_string()))
 }
 
 // TODO: Add tests

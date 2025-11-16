@@ -6,6 +6,7 @@ mod m20251011_140310_chat_members;
 mod m20251011_141157_messages;
 mod m20251018_043854_message_reply;
 mod m20251115_114258_devices;
+mod m20251116_021617_chat_names;
 
 pub struct Migrator;
 
@@ -19,6 +20,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20251011_141157_messages::Migration),
             Box::new(m20251018_043854_message_reply::Migration),
             Box::new(m20251115_114258_devices::Migration),
+            Box::new(m20251116_021617_chat_names::Migration),
         ]
     }
 }

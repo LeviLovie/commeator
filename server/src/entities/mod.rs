@@ -3,6 +3,7 @@
 pub mod prelude;
 
 pub mod chat_members;
+pub mod chat_names;
 pub mod chats;
 pub mod devices;
 pub mod messages;

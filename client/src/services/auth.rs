@@ -110,7 +110,7 @@ impl Auth {
                 let req = VerifyJwt {
                     token: file.jwt.clone().unwrap_or_default(),
                 };
-                let verify_resp: VerifyJwtResp = backend("/j/verify", "", req).await;
+                let verify_resp: VerifyJwtResp = backend("/j/verify", "", req).await.expect("Failed to verify JWT");
                 if verify_resp.valid {
                     dioxus::prelude::info!("Loaded valid JWT from storage");
                     self.state = State::Authenticated(file.clone());
@@ -120,7 +120,7 @@ impl Auth {
                 }
             }
             State::GenJWT => {
-                let jwt_resp: GenJwtResp = backend_get("/j/gen", "").await;
+                let jwt_resp: GenJwtResp = backend_get("/j/gen", "").await.expect("Failed to generate JWT");
                 self.state = State::Save(File {
                     jwt: Some(jwt_resp.token),
                     expires: Some(

@@ -4,7 +4,6 @@ use sea_orm_migration::{prelude::*, schema::*};
 pub enum Chats {
     Table,
     Uuid,
-    Name,
     IsGroup,
     CreatedAt,
 }
@@ -26,7 +25,6 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .default(Expr::cust("uuid_generate_v4()"))
                     )
-                    .col(string(Chats::Name).not_null())
                     .col(boolean(Chats::IsGroup).not_null())
                     .col(
                         timestamp(Chats::CreatedAt)

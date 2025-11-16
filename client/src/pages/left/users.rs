@@ -6,7 +6,7 @@ use crate::{
     request::backend,
     state::AppState,
 };
-use proto::{ListUsersResp, User};
+use proto::{ListUsers, ListUsersResp};
 
 #[component]
 pub fn LeftUsers() -> Element {
@@ -17,7 +17,10 @@ pub fn LeftUsers() -> Element {
     let users = use_resource(move || {
         let jwt_clone = jwt.clone();
         async move {
-            let resp: ListUsersResp = backend("/u/list", jwt_clone, ()).await;
+            let req = ListUsers {
+                exclude_me: true,
+            };
+            let resp: ListUsersResp = backend("/u/list", jwt_clone, req).await.expect("Failed to list users");
             resp.users
         }
     });

@@ -1,5 +1,3 @@
-use sea_orm::ActiveModelTrait;
-
 use super::prelude::*;
 
 const ALLOWER_USERNAME_SPECIAL_CHARS: &str = "_-.";
@@ -32,10 +30,17 @@ pub async fn get(
     }))
 }
 
-#[post("/list")]
-pub async fn list(_jwt: Jwt, db: &State<Db>) -> ApiResult<ProtoResp<ListUsersResp>> {
-    let user_models = Users::find()
-        .filter(users::Column::SetupComplete.eq(true))
+#[post("/list", data = "<req>")]
+pub async fn list(
+    jwt: Jwt,
+    req: Proto<ListUsers>,
+    db: &State<Db>,
+) -> ApiResult<ProtoResp<ListUsersResp>> {
+    let mut user_models_query = Users::find().filter(users::Column::SetupComplete.eq(true));
+    if req.0.exclude_me {
+        user_models_query = user_models_query.filter(users::Column::Uuid.ne(jwt.0.sub));
+    }
+    let user_models = user_models_query
         .all(&db.0)
         .await
         .context("Database query failed")?;

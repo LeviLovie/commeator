@@ -23,6 +23,8 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::chat_members::Entity")]
     ChatMembers,
+    #[sea_orm(has_many = "super::chat_names::Entity")]
+    ChatNames,
     #[sea_orm(has_many = "super::devices::Entity")]
     Devices,
     #[sea_orm(has_many = "super::messages::Entity")]
@@ -35,6 +37,12 @@ impl Related<super::chat_members::Entity> for Entity {
     }
 }
 
+impl Related<super::chat_names::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ChatNames.def()
+    }
+}
+
 impl Related<super::devices::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Devices.def()
@@ -44,15 +52,6 @@ impl Related<super::devices::Entity> for Entity {
 impl Related<super::messages::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Messages.def()
-    }
-}
-
-impl Related<super::chats::Entity> for Entity {
-    fn to() -> RelationDef {
-        super::chat_members::Relation::Chats.def()
-    }
-    fn via() -> Option<RelationDef> {
-        Some(super::chat_members::Relation::Users.def().rev())
     }
 }
 

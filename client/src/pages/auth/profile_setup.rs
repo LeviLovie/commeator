@@ -52,7 +52,7 @@ pub fn AuthProfileSetup() -> Element {
                 nickname,
                 avatar: String::new(),
             };
-            let resp: SetupUserResp = backend("/u/setup", jwt.clone(), req).await;
+            let resp: SetupUserResp = backend("/u/setup", jwt.clone(), req).await.expect("Failed to setup user");
             match resp.result.try_into().unwrap() {
                 SetupUserResult::Success => {
                     navigator().replace(crate::Route::AuthCallback);

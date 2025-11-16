@@ -7,7 +7,6 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub uuid: Uuid,
-    pub name: String,
     pub is_group: bool,
     pub created_at: DateTime,
 }
@@ -16,6 +15,8 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::chat_members::Entity")]
     ChatMembers,
+    #[sea_orm(has_many = "super::chat_names::Entity")]
+    ChatNames,
     #[sea_orm(has_many = "super::messages::Entity")]
     Messages,
 }
@@ -26,18 +27,15 @@ impl Related<super::chat_members::Entity> for Entity {
     }
 }
 
-impl Related<super::messages::Entity> for Entity {
+impl Related<super::chat_names::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Messages.def()
+        Relation::ChatNames.def()
     }
 }
 
-impl Related<super::users::Entity> for Entity {
+impl Related<super::messages::Entity> for Entity {
     fn to() -> RelationDef {
-        super::chat_members::Relation::Users.def()
-    }
-    fn via() -> Option<RelationDef> {
-        Some(super::chat_members::Relation::Chats.def().rev())
+        Relation::Messages.def()
     }
 }
 
