@@ -1,10 +1,10 @@
 mod auth;
 mod left;
-// mod right;
+mod right;
 
 pub use auth::*;
 pub use left::*;
-// pub use right::*;
+pub use right::*;
 
 use dioxus::prelude::*;
 

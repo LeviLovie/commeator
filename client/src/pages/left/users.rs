@@ -8,34 +8,23 @@ use crate::{
 };
 use proto::{ListUsersResp, User};
 
-#[derive(Clone)]
-pub struct UsersContext {
-    users: Resource<Vec<User>>,
-}
-
 #[component]
 pub fn LeftUsers() -> Element {
+    let navigator = navigator();
     let app_state = use_context::<AppState>();
     let jwt = app_state.auth.get_jwt();
 
     let users = use_resource(move || {
         let jwt_clone = jwt.clone();
         async move {
-            let token = jwt_clone.clone();
-            let resp: ListUsersResp = backend("/u/list", token, ()).await;
+            let resp: ListUsersResp = backend("/u/list", jwt_clone, ()).await;
             resp.users
         }
     });
-    let context = UsersContext { users };
-    use_context_provider(|| context.clone());
-
-    let navigator = navigator();
-
-    let context = use_context::<UsersContext>();
-    if context.users.read().is_none() {
+    if users.read().is_none() {
         return rsx! { Spinner {} };
     }
-    let users = context.users.read().as_ref().unwrap().clone();
+    let users = users.read().as_ref().unwrap().clone();
 
     rsx! {
         Header {

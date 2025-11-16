@@ -1,6 +1,10 @@
 use dioxus::prelude::*;
 
-use crate::{pages::LeftUsers, views::View};
+use crate::{
+    components::{CenteredInvisible, CenteredText},
+    pages::{LeftUsers, RightUser},
+    views::View,
+};
 
 #[component]
 pub fn ViewUser(username: String) -> Element {
@@ -8,16 +12,21 @@ pub fn ViewUser(username: String) -> Element {
         View {
             view_right: true,
             left: rsx! { LeftUsers {} },
-            right: rsx! { p { "user: {username:?}" } },
-            // right: rsx! {
-            //     { if let Some(username) = username.clone() {
-            //         RightUser { username }
-            //     } else {
-            //         CenteredText {
-            //             text: "Select a user to view their profile"
-            //         }
-            //     } }
-            // },
+            right: rsx! {
+                { if username.is_empty() {
+                    rsx! {
+                        CenteredInvisible {
+                            CenteredText {
+                                text: "Select a user to view their profile"
+                            }
+                        }
+                    }
+                } else {
+                    rsx! {
+                        RightUser { username: username.clone() }
+                    }
+                } }
+            },
         }
     }
 }
