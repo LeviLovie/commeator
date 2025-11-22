@@ -1,10 +1,11 @@
 use dioxus::prelude::*;
 
 use crate::{
-    Route,
     components::{Avatar, Error, Header, HeaderButtonBack, HeaderText, Spinner},
+    fetch::use_fetch,
     request::backend,
     state::AppState,
+    Route,
 };
 use proto::{GetUser, GetUserResp, VerifyPrivateChat, VerifyPrivateChatResp};
 
@@ -14,32 +15,27 @@ pub fn RightUser(username: String) -> Element {
     let app_state = use_context::<AppState>();
     let jwt = app_state.auth.get_jwt();
 
-    let jwt_clone = jwt.clone();
-    let user = use_resource(move || {
-        let jwt = jwt_clone.clone();
-        let username = username.clone();
-        async move {
-            backend::<GetUser, GetUserResp>(
-                "/u/get",
-                jwt.clone(),
-                GetUser {
-                    username: username.clone(),
-                },
-            )
-            .await
-            .expect("Failed to get user")
-            .user
-        }
-    });
-    if user.read().is_none() {
+    let user = use_fetch::<GetUser, GetUserResp>(
+        "/u/get",
+        jwt.clone(),
+        GetUser {
+            username: username.clone(),
+        },
+    );
+
+    if user().loading {
         return rsx! { Spinner {} };
     }
-    let user = user.read().as_ref().unwrap().clone();
-    if user.is_none() {
-        rsx! {
-            Error { text: "User not found"  }
-        };
-    }
+    let user = match &user().data {
+        Some(data) => data.user.clone(),
+        None => {
+            return rsx! {
+                Error {
+                    text: "Failed to load user.".to_string()
+                }
+            };
+        }
+    };
     let user = user.unwrap();
     let user_uuid = user.uuid.clone();
 

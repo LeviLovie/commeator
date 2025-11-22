@@ -1,10 +1,10 @@
 use dioxus::prelude::*;
 
 use crate::{
-    Route,
     components::{Avatar, Header, HeaderText, Item, Spinner},
-    request::backend,
+    fetch::use_fetch,
     state::AppState,
+    Route,
 };
 use proto::{ListUsers, ListUsersResp};
 
@@ -14,23 +14,15 @@ pub fn LeftUsers() -> Element {
     let app_state = use_context::<AppState>();
     let jwt = app_state.auth.get_jwt();
 
-    let users = use_resource(move || {
-        let jwt_clone = jwt.clone();
-        async move {
-            backend::<ListUsers, ListUsersResp>(
-                "/u/list",
-                jwt_clone,
-                ListUsers { exclude_me: true },
-            )
-            .await
-            .expect("Failed to list users")
-            .users
-        }
-    });
-    if users.read().is_none() {
+    let users = use_fetch::<ListUsers, ListUsersResp>(
+        "/u/list",
+        jwt.clone(),
+        ListUsers { exclude_me: true },
+    );
+    if users().loading {
         return rsx! { Spinner {} };
     }
-    let users = users.read().as_ref().unwrap().clone();
+    let users = users().data.expect("Failed to load users").users;
 
     rsx! {
         Header {

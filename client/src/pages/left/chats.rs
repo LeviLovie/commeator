@@ -1,11 +1,11 @@
 use dioxus::prelude::*;
-use proto::ListChatsResp;
+use proto::{EmptyReq, ListChatsResp};
 
 use crate::{
-    Route,
     components::{Header, HeaderButton, HeaderText, Item, SmallIconButton, Spinner},
-    request::backend_get,
+    fetch::use_fetch,
     state::AppState,
+    Route,
 };
 
 #[component]
@@ -14,19 +14,11 @@ pub fn LeftChats() -> Element {
     let app_state = use_context::<AppState>();
     let jwt = app_state.auth.get_jwt();
 
-    let chats = use_resource(move || {
-        let jwt_clone = jwt.clone();
-        async move {
-            backend_get::<ListChatsResp>("/c/list", jwt_clone)
-                .await
-                .expect("Failed to list chats")
-                .chats
-        }
-    });
-    if chats.read().is_none() {
+    let chats = use_fetch::<EmptyReq, ListChatsResp>("/c/list", jwt.clone(), EmptyReq {});
+    if chats().loading {
         return rsx! { Spinner {} };
     }
-    let chats = chats.read().as_ref().unwrap().clone();
+    let chats = chats().data.as_ref().unwrap().chats.clone();
 
     rsx! {
         Header {
