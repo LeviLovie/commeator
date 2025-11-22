@@ -7,12 +7,16 @@ use crate::{
         Avatar, Error, Header, HeaderButtonBack, HeaderText, IconButton, NotFullHeightSpinner,
         Spinner,
     },
+    fetch::use_fetch,
     pages::{LayoutContext, PanelLayout},
-    request::{backend, backend_get},
+    request::{backend},
     services::{self, messages::Message},
     state::AppState,
 };
-use proto::{GetChat, GetChatResp, MyUserResp, User, SendMessage, SendMessageResp, EditMessage, EditMessageResp, DeleteMessage, DeleteMessageResp};
+use proto::{
+    DeleteMessage, DeleteMessageResp, EditMessage, EditMessageResp, EmptyReq, GetChat, GetChatResp,
+    MyUserResp, SendMessage, SendMessageResp, User,
+};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Interaction {
@@ -40,64 +44,48 @@ pub fn RightChat(uuid: String) -> Element {
     let app_state = use_context::<AppState>();
     let jwt = app_state.auth.get_jwt();
 
-    let default_interaction = use_signal(|| Interaction::None);
-    use_context_provider(|| default_interaction);
-
-    let jwt_clone = jwt.clone();
-    let my_user = use_resource(move || {
-        let jwt = jwt_clone.clone();
-        async move {
-            backend_get::<MyUserResp>("/u/my", jwt.clone())
-                .await
-                .expect("Failed to get my user")
-                .user
-        }
-    });
-
-    let jwt_clone = jwt.clone();
-    let uuid_clone = chat_uuid.clone();
-    let chat_resp = use_resource(move || {
-        let jwt = jwt_clone.clone();
-        let uuid = uuid_clone.clone();
-        async move {
-            backend::<GetChat, GetChatResp>(
-                "/c/get",
-                jwt.clone(),
-                GetChat {
-                    uuid: uuid.to_string(),
-                },
-            )
-            .await
-            .expect("Failed to get chat")
-        }
-    });
-
-    if my_user.read().is_none() || chat_resp.read().is_none() {
+    let my_user = use_fetch::<EmptyReq, MyUserResp>("/u/my", jwt.clone(), EmptyReq {});
+    let chat = use_fetch::<GetChat, GetChatResp>("/c/get", jwt.clone(), GetChat { uuid: uuid.clone() });
+    if my_user().loading || chat().loading {
         return rsx! { Spinner {} };
     }
 
-    let my_user = my_user.read().as_ref().unwrap().clone().unwrap();
-
-    let chat_resp = chat_resp.read().as_ref().unwrap().clone();
-    let chat = chat_resp.chat.clone();
-    let members: Vec<User> = chat_resp.members.clone();
-    if chat.is_none() {
-        rsx! {
-            Error { text: "Chat not found"  }
+    if chat().data.is_none() || my_user().data.is_none() {
+        return rsx! {
+            Error { text: "Failed to load"  }
         };
     }
-    let chat = chat.unwrap();
+
+    let my_user = my_user().data.as_ref().unwrap().clone().user.unwrap();
+    let members = chat().data.as_ref().unwrap().members.clone();
+    let chat = chat().data.as_ref().unwrap().chat.clone().unwrap();
+
+    let default_interaction = use_signal(|| Interaction::None);
+    use_context_provider(|| default_interaction);
+    let mut interaction = use_context::<Signal<Interaction>>();
+    use_effect(move || {
+        interaction.set(Interaction::None);
+    });
 
     let chat_uuid_clone = chat_uuid.clone();
+    let mut last_chat_uuid = use_signal(|| Uuid::nil());
+    let mut chat_messsages: Signal<Option<Vec<Message>>> = use_signal(|| None);
     let jwt_clone = jwt.clone();
-    let chat_messsages = use_resource(move || {
+    spawn({
         let jwt = jwt_clone.clone();
         let chat_uuid = chat_uuid_clone.clone();
         async move {
-            services::Messages::new()
+            if *last_chat_uuid.read() == chat_uuid {
+                return;
+            }
+
+            last_chat_uuid.set(chat_uuid.clone());
+
+            let messages = services::Messages::new()
                 .load(&jwt, chat_uuid)
                 .await
-                .expect("Failed to get messages")
+                .expect("Failed to get messages");
+            chat_messsages.set(Some(messages.messages));
         }
     });
 
@@ -126,7 +114,7 @@ pub fn RightChat(uuid: String) -> Element {
                         .expect("Failed to find my user in chat members");
                     let jwt = jwt.clone();
                     rsx! {
-                        { chat_messages.messages.iter().map(|message| {
+                        { chat_messages.iter().map(|message| {
                             message_item(jwt.clone(), &members, &my_user, message.clone())
                         }) }
                     }

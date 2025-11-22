@@ -1,6 +1,11 @@
 use dioxus::prelude::*;
 
-use crate::{components::{Header, HeaderButtonBack, HeaderText, LogOut, Spinner}, request::backend_get, state::AppState, Route};
+use crate::{
+    Route,
+    components::{Header, HeaderButtonBack, HeaderText, LogOut, Spinner},
+    request::backend_get,
+    state::AppState,
+};
 use proto::GetUserResp;
 
 #[component]

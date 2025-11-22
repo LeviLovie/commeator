@@ -1,5 +1,6 @@
 mod components;
 mod config;
+mod fetch;
 mod pages;
 mod request;
 #[macro_use]

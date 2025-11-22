@@ -1,12 +1,15 @@
 use dioxus::prelude::*;
 
-use proto::{User, GetUserResp, CreateGroup, CreateGroupResp, ListUsers, ListUsersResp};
 use crate::{
+    Route,
     components::{
         Avatar, CenteredForm, Header, HeaderButtonBack, HeaderText, IconButton,
         NotFullHeightSpinner,
-    }, request::{backend, backend_get}, state::AppState, Route
+    },
+    request::{backend, backend_get},
+    state::AppState,
 };
+use proto::{CreateGroup, CreateGroupResp, GetUserResp, ListUsers, ListUsersResp, User};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Stage {
@@ -41,7 +44,12 @@ pub fn RightNewGroup() -> Element {
                         let title: String = title_guard.1.as_ref().unwrap().clone();
 
                         let users_guard = users.read();
-                        let mut users = users_guard.1.clone().iter().map(|u| u.uuid.clone()).collect::<Vec<String>>();
+                        let mut users = users_guard
+                            .1
+                            .clone()
+                            .iter()
+                            .map(|u| u.uuid.clone())
+                            .collect::<Vec<String>>();
 
                         let my_user = backend_get::<GetUserResp>("/u/my", jwt.clone())
                             .await
@@ -53,14 +61,18 @@ pub fn RightNewGroup() -> Element {
                         }
                         users.push(my_user.unwrap().uuid);
 
-                        match backend::<CreateGroup, CreateGroupResp>("/c/g/create", jwt.clone(), CreateGroup {
-                            name: title.clone(),
-                            member_uuids: users.clone(),
-                        }).await {
+                        match backend::<CreateGroup, CreateGroupResp>(
+                            "/c/g/create",
+                            jwt.clone(),
+                            CreateGroup {
+                                name: title.clone(),
+                                member_uuids: users.clone(),
+                            },
+                        )
+                        .await
+                        {
                             Ok(resp) => {
-                                navigator.replace(Route::ViewChat {
-                                    uuid: resp.uuid,
-                                });
+                                navigator.replace(Route::ViewChat { uuid: resp.uuid });
                             }
                             Err(e) => {
                                 error!("Failed to create new group: {}", e);
@@ -72,7 +84,8 @@ pub fn RightNewGroup() -> Element {
             } else {
                 state.set(Stage::Users);
             }
-        } else { state.set(Stage::Title);
+        } else {
+            state.set(Stage::Title);
         }
 
         || {}

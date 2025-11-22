@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use std::rc::Rc;
 
-use crate::{components::Spinner, services, Route};
+use crate::{Route, components::Spinner, services};
 
 #[derive(Clone)]
 pub struct AppState {

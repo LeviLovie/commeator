@@ -50,7 +50,8 @@ impl Messages {
                     .collect(),
                 last_synced: timestamp,
                 needs_sync: true,
-            }).await;
+            })
+            .await;
         }
 
         let file = self
@@ -73,7 +74,9 @@ impl Messages {
                 .sort_by(|a, b| a.created_at.cmp(&b.created_at));
         }
 
-        Self::save(&self, chat.clone()).await.context("Failed to save chat after sync")?;
+        Self::save(&self, chat.clone())
+            .await
+            .context("Failed to save chat after sync")?;
 
         Ok(chat)
     }
@@ -81,7 +84,8 @@ impl Messages {
     pub async fn save(&self, chat: Chat) -> Result<()> {
         let serialized = ron::to_string(&chat).context("Failed to serialize chat for storage")?;
         self.storage
-            .save_string(Self::filename(chat.uuid), serialized.clone()).await
+            .save_string(Self::filename(chat.uuid), serialized.clone())
+            .await
             .context("Failed to save chat to storage")?;
         Ok(())
     }
@@ -194,7 +198,9 @@ impl Chat {
         for update in updates.updates {
             match update.r#type.try_into().unwrap() {
                 MessageUpdateType::New => {
-                    if let Some(msg) = update.message && !self.messages.iter().any(|m| m.uuid.to_string() == msg.uuid) {
+                    if let Some(msg) = update.message
+                        && !self.messages.iter().any(|m| m.uuid.to_string() == msg.uuid)
+                    {
                         self.messages.push(Message::from(msg));
                     }
                 }
